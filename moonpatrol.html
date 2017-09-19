@@ -1,0 +1,250 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+    <title>Phaser - Making your first game, part 7</title>
+	<script type="text/javascript" src="js/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+var game = new Phaser.Game(1024, 512, Phaser.AUTO, '', { preload: preload, create: create, update: update,  });
+var horizontalScale = 1024/1920;
+var verticalScale = 512/1080;
+var distantBackground;
+var closeBackground;
+
+function preload() {
+
+    game.load.image('sky', 'assets/sky.png');
+    game.load.image('ground', 'assets/fullfloor.png');
+    game.load.image('star', 'assets/star.png');
+    game.load.image('car','assets/player.png');
+    game.load.image('obstacle','assets/rock.png');
+    game.load.image('middleBackground','assets/middleback.png');
+    game.load.image('farBackground','assets/farback.png');
+    game.load.image('enemyTank','assets/tank.png');
+    game.load.image('enemyFlying','assets/flier.png');
+    game.load.image('bulletRight','assets/bulletright.png');
+    game.load.image('bulletUp','assets/bulletup.png');
+
+}
+
+var player;
+var floorTiles;
+var cursors;
+var upBullets;
+var rightBullets;
+var upGun;
+var obstacleRock;
+var obstacleExists;
+var generateObstacle;
+var timer;
+var random;
+var flier;
+var flierActive = false;
+var score;
+var scoreText;
+
+function create() {
+
+    //  We're going to be using physics, so enable the Arcade Physics system
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+    game.stage.backgroundColor = "#000000";
+    obstacleExists = false;
+
+    //  adding the two backgrounds
+
+    distantBackground = game.add.tileSprite(0,128,1024,256,'farBackground',null);
+  //distantBackground.scale.setTo(horizontalScale,verticalScale);
+    closeBackground = game.add.tileSprite(0,256,1024,256,'middleBackground',null);
+  // closeBackground.scale.setTo(horizontalScale,verticalScale);
+
+
+    score = 0;
+
+    //  creating a group to store floor tiles
+    floorTiles = game.add.group();
+
+    //  We will enable physics for any object that is created in this group
+    floorTiles.enableBody = true;
+
+    for(var i=0;i<game.world.width/(193*verticalScale);i++)
+    {
+        groundPanel = floorTiles.create(i*193*horizontalScale,(game.world.height-184*verticalScale),'ground');
+        
+        groundPanel.body.immovable = true;
+        groundPanel.scale.setTo(horizontalScale,verticalScale);
+    }
+    
+
+    //weapon to shoot up
+    upGun = game.add.weapon(20,'bulletUp');
+    upGun.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+    upGun.bulletSpeed = 500;
+    upGun.fireRate = 400;
+    upGun.bulletAngleOffset = 90;
+
+    //weapon to shoot right
+    rightGun = game.add.weapon(20,'bulletRight');
+    rightGun.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+    rightGun.bulletSpeed = 500;
+    rightGun.fireRate = 400;
+    rightGun.fireAngle = 0;
+    rightGun.bulletKillDistance = 300;
+
+   //i know it says weapon but this is what i'm using to generate obstacles. it basically shoots them from the right side of the screen towards the left
+    obstacleGenerator = game.add.weapon(5,'obstacle');
+    obstacleGenerator.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+    obstacleGenerator.bulletSpeed = 100;
+    obstacleGenerator.fireAngle = 180;
+    obstacleGenerator.fireFrom.x = 900;
+    obstacleGenerator.fireFrom.y = 400;
+    obstacleGenerator.bulletAngleOffset = 180;
+
+    // The player and its settings
+    player = game.add.sprite(32, game.world.height - 200, 'car');
+
+    //  enable physics on the player
+    game.physics.arcade.enable(player);
+
+    //  Player physics properties.
+    player.body.bounce.y = 0.05;
+    player.body.gravity.y = 500;
+    player.scale.setTo(horizontalScale,verticalScale);
+    player.body.collideWorldBounds = true;
+    
+    //attach both guns to the player
+    upGun.trackSprite(player,50,25);
+    rightGun.trackSprite(player,150,20);
+   
+    //random events to spawn the first enemy
+    random = game.rnd.integerInRange(2,4);
+    game.time.events.add(random*1000,createObstacle);
+    game.time.events.add(1000,createFlier);
+    
+
+    //  Our controls.
+    cursors = game.input.keyboard.createCursorKeys();
+    shootKey = game.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR);
+    scoreText = game.add.text(10,30,'Score:' + score,{font:"28px Arial",fill:"#ffffff", align:"center"});
+    
+}
+
+function update() {
+
+    //  code to handle all the collisions and call respective functions
+    game.physics.arcade.collide(player, floorTiles);
+    game.physics.arcade.collide(player, obstacleGenerator.bullets,destroyCollision);
+    game.physics.arcade.collide(rightGun.bullets, obstacleGenerator.bullets, destroyObstacle);
+    game.physics.arcade.collide(upGun.bullets, flier, destroyFlier);
+    //implementing parallax for the backgrounds
+    //distantBackground.x-=0.5;
+    //closeBackground.x-=1;
+
+    //  Reset the players velocity (movement)
+    player.body.velocity.x = 0;
+    score +=0.1;
+
+   //player controls
+    if (cursors.left.isDown)
+    {
+        //  Move to the left
+        player.body.velocity.x = -150;
+
+        //player.animations.play('left');
+    }
+    else if (cursors.right.isDown)
+    {
+        //  Move to the right
+        player.body.velocity.x = 150;
+
+       // player.animations.play('right');
+    }
+    if(shootKey.isDown)
+    {
+        upGun.fire();
+        rightGun.fire();
+    }
+    
+   //move the flying enemy
+    if(flierActive)
+    {
+        moveFlier();
+    }
+    //  Allow the player to jump if they are touching the ground.
+    if (cursors.up.isDown && player.body.touching.down)
+    {
+        player.body.velocity.y = -350;
+    }
+    scoreText.text = 'Score:' + Math.round(score);
+    
+}
+
+//destroys the obstacle and the player and ends the game
+function destroyCollision(obj1, obj2)
+{
+    obj1.kill();
+    obj2.kill();
+    var text = game.add.text(512,256,'Game Over',{font:"50px Arial",fill:"#ffffff", align:"center"});
+}
+
+// destroy obstacle when bullet hits it
+function destroyObstacle(obj1, obj2)
+{
+    obj1.kill();
+    obj2.kill();
+    score+=100;
+    random = game.rnd.integerInRange(2,4);
+    game.time.events.add(random*1000,createObstacle); // creates a random event to spawn the next obstacle
+}
+
+
+function createObstacle()
+{
+    obstacleGenerator.fire();//spawn new obstacle
+    
+}
+
+//create the flying enemy
+function createFlier()
+{
+    //spawn the flier and set it's properties
+    flier = game.add.sprite(512,0,'enemyFlying');
+    game.physics.arcade.enable(flier);
+    flier.enableBody = true;
+    flier.body.gravity.y = 0;
+    flierActive = true;
+    flier.scale.setTo(horizontalScale,verticalScale);
+    game.time.events.add(7000,destroyFlier);//time limit for flier is 7 seconds
+
+}
+
+//destroys the flying enemy when hit by a bullet
+function destroyFlier()
+{
+    flier.kill();
+    flierActive = false;
+    score+=300;
+    game.time.events.add(1000*game.rnd.integerInRange(8,12),createFlier);//random event to spawn the next flying obstacle
+}
+
+
+//wave motion for the flying enemy
+function moveFlier()
+{
+    flier.body.position.x = Math.sin(game.time.now/1000)*400+400;
+}
+
+
+
+</script>
+
+</body>
+</html>
