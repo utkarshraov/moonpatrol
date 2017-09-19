@@ -87,22 +87,24 @@ function create() {
     //weapon to shoot up
     upGun = game.add.weapon(20,'bulletUp');
     upGun.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-    upGun.bulletSpeed = 500;
-    upGun.fireRate = 400;
+    upGun.bulletSpeed = 600;
+    upGun.fireRate = 700;
+    upGun.fireAngle = 315;
+    upGun.bulletGravity.y = 250;
     upGun.bulletAngleOffset = 90;
 
     //weapon to shoot right
     rightGun = game.add.weapon(20,'bulletRight');
-    rightGun.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+    rightGun.bulletKillType = Phaser.Weapon.KILL_DISTANCE;
     rightGun.bulletSpeed = 500;
-    rightGun.fireRate = 400;
+    rightGun.fireRate = 2100;
     rightGun.fireAngle = 0;
     rightGun.bulletKillDistance = 300;
 
    //i know it says weapon but this is what i'm using to generate obstacles. it basically shoots them from the right side of the screen towards the left
     obstacleGenerator = game.add.weapon(5,'obstacle');
     obstacleGenerator.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-    obstacleGenerator.bulletSpeed = 100;
+    obstacleGenerator.bulletSpeed = 400;
     obstacleGenerator.fireAngle = 180;
     obstacleGenerator.fireFrom.x = 900;
     obstacleGenerator.fireFrom.y = 400;
@@ -150,6 +152,7 @@ function update() {
 
     //  Reset the players velocity (movement)
     player.body.velocity.x = 0;
+    
     score +=0.1;
 
    //player controls
@@ -167,7 +170,7 @@ function update() {
 
        // player.animations.play('right');
     }
-    if(shootKey.isDown)
+    if(true)
     {
         upGun.fire();
         rightGun.fire();
@@ -176,6 +179,7 @@ function update() {
    //move the flying enemy
     if(flierActive)
     {
+        flier.body.velocity.x = 0;
         moveFlier();
     }
     //  Allow the player to jump if they are touching the ground.
@@ -201,7 +205,7 @@ function destroyObstacle(obj1, obj2)
     obj1.kill();
     obj2.kill();
     score+=100;
-    random = game.rnd.integerInRange(2,4);
+    random = game.rnd.integerInRange(1,2);
     game.time.events.add(random*1000,createObstacle); // creates a random event to spawn the next obstacle
 }
 
@@ -219,10 +223,10 @@ function createFlier()
     flier = game.add.sprite(512,0,'enemyFlying');
     game.physics.arcade.enable(flier);
     flier.enableBody = true;
-    flier.body.gravity.y = 0;
+   // flier.body.gravity.y = 0;
     flierActive = true;
     flier.scale.setTo(horizontalScale,verticalScale);
-    game.time.events.add(7000,destroyFlier);//time limit for flier is 7 seconds
+    game.time.events.add(7000,deleteFlier);//time limit for flier is 7 seconds
 
 }
 
@@ -233,6 +237,13 @@ function destroyFlier()
     flierActive = false;
     score+=300;
     game.time.events.add(1000*game.rnd.integerInRange(8,12),createFlier);//random event to spawn the next flying obstacle
+}
+
+function deleteFlier()
+{
+    flier.kill();
+    flierActive = false;
+    game.time.events.add(1000*game.rnd.integerInRange(8,12),createFlier);
 }
 
 
