@@ -155,7 +155,7 @@ function update() {
     //  code to handle all the collisions and call respective functions
     game.physics.arcade.collide(player, floorTiles);//so the player doesn't fall through the ground
     game.physics.arcade.collide(player, obstacleGenerator.bullets,destroyCollision);//player and rocks. destroys both and ends game
-    game.physics.arcade.collide(upGun.bullets, flier, destroyFlier);//bullets destroy flying enemies
+    game.physics.arcade.collide(upGun.bullets, flier, shootFlier);//bullets destroy flying enemies
     game.physics.arcade.collide(upGun.bullets,floorTiles, spawnCrater);//bullets hit the floor to create craters
     game.physics.arcade.collide(player,craterGenerator.bullets,destroyCollision);//player and crater collision. kills player, ends game
     game.physics.arcade.collide(upGun.bullets,obstacleGenerator.bullets,destroyObstacle);//bullet destroys rocks
@@ -266,6 +266,16 @@ function createFlier()
 function destroyFlier()
 {
     flier.kill();
+    flierActive = false;
+    score+=300;
+    game.time.events.add(1000*game.rnd.integerInRange(8,12),createFlier);//random event to spawn the next flying obstacle
+}
+
+//for when you shoot the flier
+function shootFlier(obj1,obj2)
+{
+    obj2.kill();
+    obj1.kill();
     flierActive = false;
     score+=300;
     game.time.events.add(1000*game.rnd.integerInRange(8,12),createFlier);//random event to spawn the next flying obstacle
