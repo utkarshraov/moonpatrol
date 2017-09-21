@@ -40,7 +40,6 @@ var player;
 var floorTiles;
 var cursors;
 var upBullets;
-var rightBullets;
 var upGun;
 var obstacleRock;
 var obstacleExists;
@@ -60,6 +59,8 @@ function create() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
     game.stage.backgroundColor = "#000000";
     obstacleExists = false;
+    
+    //define point where new craters spawn
     craterPoint = new Phaser.Point();
     craterPoint.x = 1023;
     craterPoint.y = 476;
@@ -74,7 +75,7 @@ function create() {
 
     score = 0;
 
-    //  creating a group to store floor tiles
+    //  creating a group to store floor tiles and craterTiles
     floorTiles = game.add.group();
     craterTiles = game.add.group();
 
@@ -82,6 +83,7 @@ function create() {
     floorTiles.enableBody = true;
     craterTiles.enableBody = true;
 
+   //generate floor, don't change anything for now
     for(var i=0;i<game.world.width/(193*verticalScale);i++)
     {
         groundPanel = floorTiles.create(i*193*horizontalScale,(game.world.height-184*verticalScale),'ground');
@@ -91,30 +93,31 @@ function create() {
     }
     
 
-    //weapon to shoot up
+    //weapon to shoot 
     upGun = game.add.weapon(20,'projectile');
     upGun.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-    upGun.bulletSpeed = 700;
-    upGun.fireRate = 700;
-    upGun.fireAngle = 300;
-    upGun.bulletGravity.y = 800;
-    upGun.bulletAngleOffset = 90;
+    upGun.bulletSpeed = 700;//change this for bullet speed
+    upGun.fireRate = 700;//change this for maximum fire rate
+    upGun.fireAngle = 300;//change this for firing angle
+    upGun.bulletGravity.y = 800;//change this value for gravity
 
  
    //i know it says weapon but this is what i'm using to generate obstacles. it basically shoots them from the right side of the screen towards the left
     obstacleGenerator = game.add.weapon(5,'obstacle');
     obstacleGenerator.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-    obstacleGenerator.bulletSpeed = 400;
-    obstacleGenerator.fireAngle = 180;
-    obstacleGenerator.fireFrom.x = 900;
-    obstacleGenerator.fireFrom.y = 400;
-    obstacleGenerator.bulletAngleOffset = 180;
+    obstacleGenerator.bulletSpeed = 400;//speed that the obstacles travel
+    obstacleGenerator.fireAngle = 180;//don't change
+    obstacleGenerator.fireFrom.x = 900;//don't change
+    obstacleGenerator.fireFrom.y = 400;//don't change
+    obstacleGenerator.bulletAngleOffset = 180;//don't change
 
+    
+    //again, this says weapon, but i'm using this to spawn craters. works the same way as the obstacle generator
     craterGenerator = game.add.weapon(5,'crater');
     craterGenerator.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-    craterGenerator.bulletSpeed = 400;
-    craterGenerator.fireAngle = 180;
-    craterGenerator.bulletAngleOffset = 180;
+    craterGenerator.bulletSpeed = 400;//speed of the crater. try and keep it the same as the speed of the obstacle so it seems like we're moving at the same speed
+    craterGenerator.fireAngle = 180;//don't change
+    craterGenerator.bulletAngleOffset = 180;//don't change
 
     // The player and its settings
     player = game.add.sprite(32, game.world.height - 200, 'car');
@@ -123,14 +126,13 @@ function create() {
     game.physics.arcade.enable(player);
 
     //  Player physics properties.
-    player.body.bounce.y = 0.05;
-    player.body.gravity.y = 500;
-    player.scale.setTo(horizontalScale,verticalScale);
-    player.body.collideWorldBounds = true;
+    player.body.bounce.y = 0.05;//don't change
+    player.body.gravity.y = 500;//modify this to change player gravity
+    player.scale.setTo(horizontalScale,verticalScale);//don't change
+    player.body.collideWorldBounds = true;//don't change
     
     //attach both guns to the player
     upGun.trackSprite(player,50,25);
-    rightGun.trackSprite(player,150,20);
    
     //random events to spawn the first enemy
     random = game.rnd.integerInRange(2,4);
@@ -151,20 +153,19 @@ function create() {
 function update() {
 
     //  code to handle all the collisions and call respective functions
-    game.physics.arcade.collide(player, floorTiles);
-    game.physics.arcade.collide(player, obstacleGenerator.bullets,destroyCollision);
-    game.physics.arcade.collide(rightGun.bullets, obstacleGenerator.bullets, destroyObstacle);
-    game.physics.arcade.collide(upGun.bullets, flier, destroyFlier);
-    game.physics.arcade.collide(upGun.bullets,floorTiles, spawnCrater);
-    game.physics.arcade.collide(player,craterGenerator.bullets,destroyCollision);
-    game.physics.arcade.collide(upGun.bullets,obstacleGenerator.bullets,destroyObstacle);
+    game.physics.arcade.collide(player, floorTiles);//so the player doesn't fall through the ground
+    game.physics.arcade.collide(player, obstacleGenerator.bullets,destroyCollision);//player and rocks. destroys both and ends game
+    game.physics.arcade.collide(upGun.bullets, flier, destroyFlier);//bullets destroy flying enemies
+    game.physics.arcade.collide(upGun.bullets,floorTiles, spawnCrater);//bullets hit the floor to create craters
+    game.physics.arcade.collide(player,craterGenerator.bullets,destroyCollision);//player and crater collision. kills player, ends game
+    game.physics.arcade.collide(upGun.bullets,obstacleGenerator.bullets,destroyObstacle);//bullet destroys rocks
     //implementing parallax for the backgrounds
     //distantBackground.x-=0.5;
     //closeBackground.x-=1;
 
     //  Reset the players velocity (movement)
     player.body.velocity.x = 0;
-    game.world.bringToTop(craterGenerator.bullets);
+    game.world.bringToTop(craterGenerator.bullets);//don't change. makes sure the craters are in FRONT of the ground
     score +=0.1;
    // game.world.brintToBottom(floorTiles);
    //player controls
@@ -198,7 +199,7 @@ function update() {
     {
         player.body.velocity.y = -320;
     }
-    scoreText.text = 'Score:' + Math.round(score);
+    scoreText.text = 'Score:' + Math.round(score); //print score
     
 }
 
@@ -207,7 +208,7 @@ function update() {
 function generateCrater()
 {
 	craterGenerator.fire(craterPoint);
-	var random2 = game.rnd.integerInRange(4,6);
+	var random2 = game.rnd.integerInRange(4,6);//frequency of new craters in seconds
 	game.time.events.add(random2*1000,generateCrater);
 }
 
@@ -215,7 +216,7 @@ function generateCrater()
 //generates crater where projectile hits the ground
 function spawnCrater(obj1,obj2)
 {
-	craterGenerator.fire(obj1,null,null,null,73);
+	craterGenerator.fire(obj1,null,null,null,73);//don't change
 	obj1.kill();
 }
 
@@ -229,21 +230,21 @@ function destroyCollision(obj1, obj2)
    // game.destroy();
 }
 
-// destroy obstacle when bullet hits it
+// destroy obstacle when bullet hits it and craetes timer for new obstacle
 function destroyObstacle(obj1, obj2)
 {
     obj1.kill();
     obj2.kill();
     score+=100;
-    random = game.rnd.integerInRange(1,2);
+    random = game.rnd.integerInRange(1,2);//frequency of new rocks
     game.time.events.add(random*1000,createObstacle); // creates a random event to spawn the next obstacle
 }
 
-
+//when rock goes off screen, adds event to create new obstacle
 function createObstacle()
 {
     obstacleGenerator.fire();//spawn new obstacle
-    random = game.rnd.integerInRange(4,6);
+    random = game.rnd.integerInRange(4,6);//frequency of new rocks
     game.time.events.add(random*1000,createObstacle);
 }
 
@@ -251,7 +252,7 @@ function createObstacle()
 function createFlier()
 {
     //spawn the flier and set it's properties
-    flier = game.add.sprite(512,100,'enemyFlying');
+    flier = game.add.sprite(512,100,'enemyFlying');//don't change
     game.physics.arcade.enable(flier);
     flier.enableBody = true;
    // flier.body.gravity.y = 0;
@@ -276,14 +277,14 @@ function deleteFlier()
 {
     flier.kill();
     flierActive = false;
-    game.time.events.add(1000*game.rnd.integerInRange(8,12),createFlier);
+    game.time.events.add(1000*game.rnd.integerInRange(8,12),createFlier);//random event to spawn the next flying enemy
 }
 
 
 //wave motion for the flying enemy
 function moveFlier()
 {
-    flier.body.position.x = Math.sin(game.time.now/1000)*400+400;
+    flier.body.position.x = Math.sin(game.time.now/1000)*400+400;//don't change for now
 }
 
 
