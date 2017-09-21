@@ -30,7 +30,6 @@ function preload() {
     game.load.image('farBackground','assets/farback.png');
     game.load.image('enemyTank','assets/tank.png');
     game.load.image('enemyFlying','assets/flier.png');
-    game.load.image('bulletRight','assets/bulletright.png');
     game.load.image('bulletUp','assets/bulletup.png');
     game.load.image('crater','assets/craterfloor.png');
     game.load.image('projectile','assets/roundbullet.png');
@@ -101,14 +100,7 @@ function create() {
     upGun.bulletGravity.y = 800;
     upGun.bulletAngleOffset = 90;
 
-    //weapon to shoot right
-    rightGun = game.add.weapon(20,'bulletRight');
-    rightGun.bulletKillType = Phaser.Weapon.KILL_DISTANCE;
-    rightGun.bulletSpeed = 500;
-    rightGun.fireRate = 2100;
-    rightGun.fireAngle = 0;
-    rightGun.bulletKillDistance = 300;
-
+ 
    //i know it says weapon but this is what i'm using to generate obstacles. it basically shoots them from the right side of the screen towards the left
     obstacleGenerator = game.add.weapon(5,'obstacle');
     obstacleGenerator.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
@@ -193,7 +185,6 @@ function update() {
     if(shootKey.isDown)
     {
         upGun.fire();
-        //rightGun.fire();
     }
     
    //move the flying enemy
@@ -211,7 +202,7 @@ function update() {
     
 }
 
-//destroys the obstacle and the player and ends the game
+//randomly generated crater function
 
 function generateCrater()
 {
@@ -220,12 +211,16 @@ function generateCrater()
 	game.time.events.add(random2*1000,generateCrater);
 }
 
+
+//generates crater where projectile hits the ground
 function spawnCrater(obj1,obj2)
 {
 	craterGenerator.fire(obj1,null,null,null,73);
 	obj1.kill();
 }
 
+
+//mainly used for collisions that kill the player
 function destroyCollision(obj1, obj2)
 {
     obj1.kill();
@@ -266,7 +261,7 @@ function createFlier()
 
 }
 
-//destroys the flying enemy when hit by a bullet
+//destroys the flying enemy when hit by a bullet and updates score
 function destroyFlier()
 {
     flier.kill();
@@ -275,6 +270,8 @@ function destroyFlier()
     game.time.events.add(1000*game.rnd.integerInRange(8,12),createFlier);//random event to spawn the next flying obstacle
 }
 
+
+//destroys flier after some amount of time
 function deleteFlier()
 {
     flier.kill();
