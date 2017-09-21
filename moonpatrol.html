@@ -87,10 +87,10 @@ function create() {
     //weapon to shoot up
     upGun = game.add.weapon(20,'bulletUp');
     upGun.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-    upGun.bulletSpeed = 600;
+    upGun.bulletSpeed = 500;
     upGun.fireRate = 700;
-    upGun.fireAngle = 315;
-    upGun.bulletGravity.y = 250;
+    upGun.fireAngle = 300;
+    upGun.bulletGravity.y = 400;
     upGun.bulletAngleOffset = 90;
 
     //weapon to shoot right
@@ -170,10 +170,10 @@ function update() {
 
        // player.animations.play('right');
     }
-    if(true)
+    if(shootKey.isDown)
     {
         upGun.fire();
-        rightGun.fire();
+        //rightGun.fire();
     }
     
    //move the flying enemy
