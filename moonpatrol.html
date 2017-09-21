@@ -24,7 +24,6 @@ function preload() {
 
     game.load.image('sky', 'assets/sky.png');
     game.load.image('ground', 'assets/fullfloor.png');
-    game.load.image('star', 'assets/star.png');
     game.load.image('car','assets/player.png');
     game.load.image('obstacle','assets/rock.png');
     game.load.image('middleBackground','assets/middleback.png');
@@ -33,6 +32,8 @@ function preload() {
     game.load.image('enemyFlying','assets/flier.png');
     game.load.image('bulletRight','assets/bulletright.png');
     game.load.image('bulletUp','assets/bulletup.png');
+    game.load.image('crater','assets/craterfloor.png');
+    game.load.image('projectile','assets/roundbullet.png');
 
 }
 
@@ -51,13 +52,18 @@ var flier;
 var flierActive = false;
 var score;
 var scoreText;
-
+var craterTiles;
+var craterPanel;
+var craterPoint;
 function create() {
 
     //  We're going to be using physics, so enable the Arcade Physics system
     game.physics.startSystem(Phaser.Physics.ARCADE);
     game.stage.backgroundColor = "#000000";
     obstacleExists = false;
+    craterPoint = new Phaser.Point();
+    craterPoint.x = 1023;
+    craterPoint.y = 476;
 
     //  adding the two backgrounds
 
@@ -71,9 +77,11 @@ function create() {
 
     //  creating a group to store floor tiles
     floorTiles = game.add.group();
+    craterTiles = game.add.group();
 
     //  We will enable physics for any object that is created in this group
     floorTiles.enableBody = true;
+    craterTiles.enableBody = true;
 
     for(var i=0;i<game.world.width/(193*verticalScale);i++)
     {
@@ -85,12 +93,12 @@ function create() {
     
 
     //weapon to shoot up
-    upGun = game.add.weapon(20,'bulletUp');
+    upGun = game.add.weapon(20,'projectile');
     upGun.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-    upGun.bulletSpeed = 500;
+    upGun.bulletSpeed = 700;
     upGun.fireRate = 700;
     upGun.fireAngle = 300;
-    upGun.bulletGravity.y = 400;
+    upGun.bulletGravity.y = 800;
     upGun.bulletAngleOffset = 90;
 
     //weapon to shoot right
@@ -110,6 +118,12 @@ function create() {
     obstacleGenerator.fireFrom.y = 400;
     obstacleGenerator.bulletAngleOffset = 180;
 
+    craterGenerator = game.add.weapon(5,'crater');
+    craterGenerator.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+    craterGenerator.bulletSpeed = 400;
+    craterGenerator.fireAngle = 180;
+    craterGenerator.bulletAngleOffset = 180;
+
     // The player and its settings
     player = game.add.sprite(32, game.world.height - 200, 'car');
 
@@ -128,8 +142,11 @@ function create() {
    
     //random events to spawn the first enemy
     random = game.rnd.integerInRange(2,4);
+    var random3 = game.rnd.integerInRange(3,5);
+
     game.time.events.add(random*1000,createObstacle);
     game.time.events.add(1000,createFlier);
+    game.time.events.add(1000*random3,generateCrater);
     
 
     //  Our controls.
@@ -146,15 +163,18 @@ function update() {
     game.physics.arcade.collide(player, obstacleGenerator.bullets,destroyCollision);
     game.physics.arcade.collide(rightGun.bullets, obstacleGenerator.bullets, destroyObstacle);
     game.physics.arcade.collide(upGun.bullets, flier, destroyFlier);
+    game.physics.arcade.collide(upGun.bullets,floorTiles, spawnCrater);
+    game.physics.arcade.collide(player,craterGenerator.bullets,destroyCollision);
+    game.physics.arcade.collide(upGun.bullets,obstacleGenerator.bullets,destroyObstacle);
     //implementing parallax for the backgrounds
     //distantBackground.x-=0.5;
     //closeBackground.x-=1;
 
     //  Reset the players velocity (movement)
     player.body.velocity.x = 0;
-    
+    game.world.bringToTop(craterGenerator.bullets);
     score +=0.1;
-
+   // game.world.brintToBottom(floorTiles);
    //player controls
     if (cursors.left.isDown)
     {
@@ -185,18 +205,33 @@ function update() {
     //  Allow the player to jump if they are touching the ground.
     if (cursors.up.isDown && player.body.touching.down)
     {
-        player.body.velocity.y = -350;
+        player.body.velocity.y = -320;
     }
     scoreText.text = 'Score:' + Math.round(score);
     
 }
 
 //destroys the obstacle and the player and ends the game
+
+function generateCrater()
+{
+	craterGenerator.fire(craterPoint);
+	var random2 = game.rnd.integerInRange(4,6);
+	game.time.events.add(random2*1000,generateCrater);
+}
+
+function spawnCrater(obj1,obj2)
+{
+	craterGenerator.fire(obj1,null,null,null,73);
+	obj1.kill();
+}
+
 function destroyCollision(obj1, obj2)
 {
     obj1.kill();
     obj2.kill();
     var text = game.add.text(512,256,'Game Over',{font:"50px Arial",fill:"#ffffff", align:"center"});
+   // game.destroy();
 }
 
 // destroy obstacle when bullet hits it
@@ -213,14 +248,15 @@ function destroyObstacle(obj1, obj2)
 function createObstacle()
 {
     obstacleGenerator.fire();//spawn new obstacle
-    
+    random = game.rnd.integerInRange(4,6);
+    game.time.events.add(random*1000,createObstacle);
 }
 
 //create the flying enemy
 function createFlier()
 {
     //spawn the flier and set it's properties
-    flier = game.add.sprite(512,0,'enemyFlying');
+    flier = game.add.sprite(512,100,'enemyFlying');
     game.physics.arcade.enable(flier);
     flier.enableBody = true;
    // flier.body.gravity.y = 0;
