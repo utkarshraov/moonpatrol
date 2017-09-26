@@ -53,6 +53,8 @@ var scoreText;
 var craterTiles;
 var craterPanel;
 var craterPoint;
+var screenSpeed;
+var canPlayerJump;
 
 
 function create() {
@@ -66,7 +68,7 @@ function create() {
     craterPoint = new Phaser.Point();
     craterPoint.x = 1023;
     craterPoint.y = 476;
-
+    screenSpeed = 600;
     //  adding the two backgrounds
 
     distantBackground = game.add.tileSprite(0,128,1024,256,'farBackground',null);
@@ -74,7 +76,7 @@ function create() {
     closeBackground = game.add.tileSprite(0,256,1024,256,'middleBackground',null);
   // closeBackground.scale.setTo(horizontalScale,verticalScale);
 
-
+  	canPlayerJump = true;
     score = 0;
 
     //  creating a group to store floor tiles and craterTiles
@@ -98,18 +100,18 @@ function create() {
     //weapon to shoot 
     upGun = game.add.weapon(20,'projectile');
     upGun.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-    upGun.bulletSpeed = 700;//change this for bullet speed
+    upGun.bulletSpeed = 1000;//change this for bullet speed
     upGun.fireRate = 700;//change this for maximum fire rate
     upGun.fireAngle = 300;//change this for firing angle
-    upGun.bulletGravity.y = 800;//change this value for gravity
+    upGun.bulletGravity.y = 2000;//change this value for gravity
 
  
    //i know it says weapon but this is what i'm using to generate obstacles. it basically shoots them from the right side of the screen towards the left
     obstacleGenerator = game.add.weapon(5,'obstacle');
     obstacleGenerator.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-    obstacleGenerator.bulletSpeed = 400;//speed that the obstacles travel
+    obstacleGenerator.bulletSpeed = screenSpeed;//speed that the obstacles travel
     obstacleGenerator.fireAngle = 180;//don't change
-    obstacleGenerator.fireFrom.x = 900;//don't change
+    obstacleGenerator.fireFrom.x = 1024;//don't change
     obstacleGenerator.fireFrom.y = 400;//don't change
     obstacleGenerator.bulletAngleOffset = 180;//don't change
 
@@ -117,7 +119,7 @@ function create() {
     //again, this says weapon, but i'm using this to spawn craters. works the same way as the obstacle generator
     craterGenerator = game.add.weapon(5,'crater');
     craterGenerator.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-    craterGenerator.bulletSpeed = 400;//speed of the crater. try and keep it the same as the speed of the obstacle so it seems like we're moving at the same speed
+    craterGenerator.bulletSpeed = screenSpeed;//speed of the crater. try and keep it the same as the speed of the obstacle so it seems like we're moving at the same speed
     craterGenerator.fireAngle = 180;//don't change
     craterGenerator.bulletAngleOffset = 180;//don't change
 
@@ -129,7 +131,7 @@ function create() {
 
     //  Player physics properties.
     player.body.bounce.y = 0.05;//don't change
-    player.body.gravity.y = 500;//modify this to change player gravity
+    player.body.gravity.y = 2800;//modify this to change player gravity
     player.scale.setTo(horizontalScale,verticalScale);//don't change
     player.body.collideWorldBounds = true;//don't change
     
@@ -197,12 +199,19 @@ function update() {
         moveFlier();
     }
     //  Allow the player to jump if they are touching the ground.
-    if (cursors.up.isDown && player.body.touching.down)
+    if (cursors.up.isDown && player.body.touching.down && canPlayerJump)
     {
-        player.body.velocity.y = -320;
+        player.body.velocity.y = -900;
+        canPlayerJump = false;
+        game.time.events.add(800,jumpPlayer);
     }
     scoreText.text = 'Score:' + Math.round(score); //print score
     
+}
+
+function jumpPlayer()
+{
+	canPlayerJump = true;
 }
 
 //randomly generated crater function
