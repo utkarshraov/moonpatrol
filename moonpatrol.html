@@ -53,6 +53,8 @@ var scoreText;
 var craterTiles;
 var craterPanel;
 var craterPoint;
+
+
 function create() {
 
     //  We're going to be using physics, so enable the Arcade Physics system
@@ -160,14 +162,14 @@ function update() {
     game.physics.arcade.collide(player,craterGenerator.bullets,destroyCollision);//player and crater collision. kills player, ends game
     game.physics.arcade.collide(upGun.bullets,obstacleGenerator.bullets,destroyObstacle);//bullet destroys rocks
     //implementing parallax for the backgrounds
-    //distantBackground.x-=0.5;
-    //closeBackground.x-=1;
+    distantBackground.tilePosition.x-=0.5;
+    closeBackground.tilePosition.x-=1;
 
     //  Reset the players velocity (movement)
     player.body.velocity.x = 0;
     game.world.bringToTop(craterGenerator.bullets);//don't change. makes sure the craters are in FRONT of the ground
     score +=0.1;
-   // game.world.brintToBottom(floorTiles);
+ 
    //player controls
     if (cursors.left.isDown)
     {
@@ -243,6 +245,7 @@ function destroyObstacle(obj1, obj2)
 //when rock goes off screen, adds event to create new obstacle
 function createObstacle()
 {
+    score+=100;
     obstacleGenerator.fire();//spawn new obstacle
     random = game.rnd.integerInRange(4,6);//frequency of new rocks
     game.time.events.add(random*1000,createObstacle);
@@ -262,14 +265,6 @@ function createFlier()
 
 }
 
-//destroys the flying enemy when hit by a bullet and updates score
-function destroyFlier()
-{
-    flier.kill();
-    flierActive = false;
-    score+=300;
-    game.time.events.add(1000*game.rnd.integerInRange(8,12),createFlier);//random event to spawn the next flying obstacle
-}
 
 //for when you shoot the flier
 function shootFlier(obj1,obj2)
