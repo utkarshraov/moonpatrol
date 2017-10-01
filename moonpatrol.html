@@ -26,8 +26,6 @@ function preload() {
     game.load.image('sky', 'assets/sky.png');
     game.load.image('ground', 'assets/fullfloor.png');
     game.load.image('car','assets/player.png');
-    game.load.physics('carPhysics','assets/player.json')
-    //game.load.image('obstacle','assets/rock.png');
     game.load.image('rock','assets/rock.png');
     game.load.image('middleBackground','assets/middleback.png');
     game.load.image('farBackground','assets/farback.png');
@@ -95,7 +93,7 @@ function create() {
   
     for(var i=0;i<20;i++)
     {
-        groundPanel = floorTiles.create(i*193,(game.world.height-184*0.6),'ground');
+        groundPanel = floorTiles.create(i*193,(game.world.height-184*0.68),'ground');
         
         groundPanel.body.immovable = true;
         //groundPanel.scale.setTo(horizontalScale,verticalScale);
@@ -121,7 +119,7 @@ function create() {
     //weapon to shoot 
     upGun = game.add.weapon(20,'projectile');
     upGun.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-    upGun.bulletSpeed = 1500;//change this for bullet speed
+    upGun.bulletSpeed = 1400;//change this for bullet speed
     upGun.fireRate = 700;//change this for maximum fire rate
     upGun.fireAngle = 300;//change this for firing angle
     upGun.bulletGravity.y = 2000;//change this value for gravity
@@ -130,18 +128,19 @@ function create() {
    //i know it says weapon but this is what i'm using to generate obstacles. it basically shoots them from the right side of the screen towards the left
     obstacleGenerator = game.add.weapon(5,'rock');
     obstacleGenerator.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-    obstacleGenerator.bulletSpeed = screenSpeed * speedScale;//speed that the obstacles travel
+    obstacleGenerator.bulletSpeed = screenSpeed;//speed that the obstacles travel
     obstacleGenerator.fireAngle = 180;//don't change
     obstacleGenerator.fireFrom.x = 1800;//don't change
     obstacleGenerator.fireFrom.y = 780;//don't change
     obstacleGenerator.bulletAngleOffset = 180;//don't change
-    obstacleGenerator.bullets.setAll('scale.x', 0.5);
-	obstacleGenerator.bullets.setAll('scale.y', 0.5);
+    obstacleGenerator.bullets.setAll('scale.x', 01);
+	obstacleGenerator.bullets.setAll('scale.y', 01);
+	//obstacleGenerator.setSize(100,100,10,10);
     
     //again, this says weapon, but i'm using this to spawn craters. works the same way as the obstacle generator
     craterGenerator = game.add.weapon(5,'crater');
     craterGenerator.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-    craterGenerator.bulletSpeed = screenSpeed * speedScale;//speed of the crater. try and keep it the same as the speed of the obstacle so it seems like we're moving at the same speed
+    craterGenerator.bulletSpeed = screenSpeed;//speed of the crater. try and keep it the same as the speed of the obstacle so it seems like we're moving at the same speed
     craterGenerator.fireAngle = 180;//don't change
     craterGenerator.bulletAngleOffset = 180;//don't change
     craterGenerator.bullets.setAll('scale.x', 0.5);
@@ -165,7 +164,7 @@ function create() {
     tankWeapon.bulletGravity.x = -500;
 
     // The player and its settings
-    player = game.add.sprite(32, game.world.height - 500, 'car');
+    player = game.add.sprite(32, game.world.height - 300, 'car');
 
     //  enable physics on the player
     game.physics.arcade.enable(player);
@@ -175,6 +174,7 @@ function create() {
     player.body.gravity.y = 2800;//modify this to change player gravity
    //player.scale.setTo(horizontalScale,verticalScale);//don't change
     player.body.collideWorldBounds = true;//don't change
+    player.body.setSize(210,100,10,40);
     
     //attach both guns to the player
     upGun.trackSprite(player,130,40);
@@ -187,16 +187,18 @@ function create() {
     game.time.events.add(1000*random,createObstacle);
     game.time.events.add(1000,createFlier);
     //game.time.events.add(1000*random3,generateCrater);
-    game.time.events.add(1000*10,createTank);
+   game.time.events.add(1000,createTank);
     
 
     //  Our controls....
     cursors = game.input.keyboard.createCursorKeys();
     shootKey = game.input.keyboard.addKey(Phaser.KeyCode.S);
-    scoreText = game.add.text(10,30,'Score:' + score,{font:"28px Arial",fill:"#ffffff", align:"center"});
+    scoreText = game.add.text(10,30,'Score:' + score,{font:"28px Arial",fill:"#000000", align:"center"});
     pauseKey = game.input.keyboard.addKey(Phaser.KeyCode.P);
     
 }
+
+var onFlierDeath = false;
 
 function update() {
 
@@ -212,13 +214,20 @@ function update() {
     game.physics.arcade.collide(player, tankWeapon.bullets,destroyCollision);
     game.physics.arcade.collide(upGun.bullets, tank,destroyTank);
     //implementing parallax for the backgrounds
-    distantBackground.tilePosition.x-=0.5*speedScale*1.3;
-    midBackground.tilePosition.x-=0.75*speedScale*1.3;
-    closeBackground.tilePosition.x-=1*speedScale*1.3;
-    groundSprite.tilePosition.x-=10*speedScale;
+    distantBackground.tilePosition.x-=0.5*speedScale;
+    //distantBackground.tint+=1;
+    midBackground.tilePosition.x-=0.75*speedScale;
+    closeBackground.tilePosition.x-=1.2*speedScale;
+    groundSprite.tilePosition.x-=10;
     speedScale = 1+ player.body.position.x/1800;
     //  Reset the players velocity (movement)
     player.body.velocity.x = 0;
+    //game.debug.body(player);
+    //if(flierActive){game.debug.body(flier);}
+    //if(tankActive){game.debug.body(tank);}
+    //game.debug.body(obstacleGenerator.bullets);
+
+
     game.world.bringToTop(craterGenerator.bullets);
    if(tankActive){ game.world.bringToTop(tank);}//don't change. makes sure the craters are in FRONT of the ground
     score +=0.1;
@@ -253,6 +262,10 @@ function update() {
     {
     	moveTank();
     }
+    if(onFlierDeath)
+    {
+    	flyAwayFlier();
+    }
 
     //  Allow the player to jump if they are touching the ground.
     if (cursors.up.isDown && player.body.touching.down && canPlayerJump)
@@ -270,47 +283,49 @@ function createTank()
 {
 	if(!tankActive)
     {//spawn the flier and set it's properties
-    	tank = game.add.sprite(1900,680,'groundEnemy');//don't change
+    	tank = game.add.sprite(2000,680,'groundEnemy');//don't change
     	game.physics.arcade.enable(tank);
+    	console.log("created tank");
 	    //tank.enableBody = true;
 	   // flier.body.gravity.y = 0;
 	    tankActive = true;
 	    tank.scale.setTo(horizontalScale,verticalScale);
 	    //game.time.events.add(9000,deleteFlier);//time limit for flier is 7 seconds
-	    game.time.events.add(1000,tankShoot);
+	    game.time.events.add(3000,tankShoot);
 	    tankWeapon.trackSprite(tank);
 	}
 }
 var tankSet = false;
 function moveTank()
 {
-	if(tank.body.position.x>1600 && !tankSet){
+	if(tank.body.position.x>1500 && !tankSet){
 		tank.body.position.x-=5;
 	}
-	if(tank.body.position.x =1600 && !tankSet)
+	else
 	{
 		tankSet = true;
 	}
-	if( tankSet)
+	/*if( tankSet)
 	{
-		tank.body.position.x = Math.sin(game.time.now/1000)*100+1500;
-	}
+		tank.body.position.x = Math.sin(game.time.now/1000)*100+1600;
+	}*/
 }
 
 function destroyTank(obj1,obj2)
 {
 	obj1.kill();
 	obj2.kill();
+	console.log("killed tank");
 	tankActive = false;
-	game.time.events.add(4000,createTank);
+	tankSet = false;
+	game.time.events.add(1000*game.rnd.integerInRange(3,5),createTank);
 	score+=400;
 }
 
 function tankShoot()
 {	
-	tankWeapon.bulletSpeed = 700 * speedScale;
 	if(tankActive){tankWeapon.fire();}
-	game.time.events.add(4000,tankShoot);
+	game.time.events.add(1000*game.rnd.integerInRange(3,4),tankShoot);
 }
 
 function jumpPlayer()
@@ -322,7 +337,6 @@ function jumpPlayer()
 
 function generateCrater()
 {
-	craterGenerator.bulletSpeed = screenSpeed * speedScale;
 	craterGenerator.fire(craterPoint);
 	var random2 = game.rnd.integerInRange(4,6);//frequency of new craters in seconds
 	game.time.events.add(random2*1000,generateCrater);
@@ -332,8 +346,7 @@ function generateCrater()
 //generates crater where projectile hits the ground
 function spawnCrater(obj1,obj2)
 {
-	craterGenerator.bulletSpeed = screenSpeed * speedScale;
-	craterGenerator.fire(obj1,null,null,null,85);//don't change
+	craterGenerator.fire(obj1,null,null,null,105);//don't change
 	obj1.kill();
 }
 
@@ -362,26 +375,28 @@ function destroyObstacle(obj1, obj2)
 function createObstacle()
 {
     score+=100;
-    obstacleGenerator.bulletSpeed = screenSpeed * speedScale;
     obstacleGenerator.fire();//spawn new obstacle
     random = game.rnd.integerInRange(4,6);//frequency of new rocks
     game.time.events.add(random*1000,createObstacle);
 }
 
+var flierDeath;
 //create the flying enemy
 function createFlier()
 {
     if(!flierActive)
     {//spawn the flier and set it's properties
-    	flier = game.add.sprite(900,-100,'enemyFlying');//don't change
+		var spawnx = game.rnd.integerInRange(700,1200)
+    	flier = game.add.sprite(spawnx,-100,'enemyFlying');//don't change
     	game.physics.arcade.enable(flier);
 	    flier.enableBody = true;
 	   // flier.body.gravity.y = 0;
 	    flierActive = true;
 	    flier.scale.setTo(horizontalScale,verticalScale);
-	    game.time.events.add(12000,deleteFlier);//time limit for flier is 7 seconds
-	    game.time.events.add(4000,shootGun);
-	    game.time.events.add(7000,shootGun);
+	    flierDeath = game.time.events.add(12000,flyAwayFlier);//time limit for flier is 7 seconds
+	    game.time.events.add(1000*game.rnd.integerInRange(3,5),shootGun);
+	    game.time.events.add(1000*game.rnd.integerInRange(7,9),shootGun);
+	    game.time.events.add(13000,shootGun);
 	    enemyWeapon.trackSprite(flier);
 	}
 }
@@ -399,6 +414,7 @@ function shootFlier(obj1,obj2)
 {
     obj2.kill();
     obj1.kill();
+    game.time.events.remove(flierDeath);
     flierActive = false;
     score+=300;
     game.time.events.add(1000*game.rnd.integerInRange(6,9),createFlier);//random event to spawn the next flying obstacle
@@ -408,19 +424,33 @@ function shootFlier(obj1,obj2)
 //destroys flier after some amount of time
 function deleteFlier()
 {
+    
     flier.kill();
     flierActive = false;
+    onFlierDeath = false;
+    
     game.time.events.add(1000*game.rnd.integerInRange(6,9),createFlier);//random event to spawn the next flying enemy
+}
+
+function flyAwayFlier()
+{
+	onFlierDeath = true;
+	flier.body.position.x+=5;
+	flier.body.position.y-=5;
+	if(flier.body.position.x>1900 || flier.body.position.y<-100)
+	{
+		deleteFlier();
+	}
 }
 
 
 //wave motion for the flying enemy
 function moveFlier()
 {
-    flier.body.position.x = Math.sin(game.time.now/1000)*400+600;//don't change for now
-    if(flier.body.position.y<400)
+    flier.body.position.x = Math.sin(game.time.now/1000)*400+1000;//don't change for now
+    if(flier.body.position.y<300)
     {
-    	flier.body.position.y+=1;
+    	flier.body.position.y+=0.4;
     }
 
 }
