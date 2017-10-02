@@ -172,7 +172,7 @@ function create() {
     //  Player physics properties.
     player.body.bounce.y = 0.05;//don't change
     player.body.gravity.y = 2800;//modify this to change player gravity
-   //player.scale.setTo(horizontalScale,verticalScale);//don't change
+   //player.scale.setTo(0.25);//don't change
     player.body.collideWorldBounds = true;//don't change
     player.body.setSize(210,100,10,40);
     
@@ -213,16 +213,17 @@ function update() {
     game.physics.arcade.collide(player, enemyWeapon.bullets,destroyCollision);
     game.physics.arcade.collide(player, tankWeapon.bullets,destroyCollision);
     game.physics.arcade.collide(upGun.bullets, tank,destroyTank);
+    game.physics.arcade.collide(enemyWeapon.bullets,obstacleGenerator.bullets,destroyObstacle);
     //implementing parallax for the backgrounds
     distantBackground.tilePosition.x-=0.5*speedScale;
-    //distantBackground.tint+=1;
+    //distantBackground.tint=0xff0345
     midBackground.tilePosition.x-=0.75*speedScale;
     closeBackground.tilePosition.x-=1.2*speedScale;
     groundSprite.tilePosition.x-=10;
     speedScale = 1+ player.body.position.x/1800;
     //  Reset the players velocity (movement)
     player.body.velocity.x = 0;
-    //game.debug.body(player);
+   // game.debug.body(player);
     //if(flierActive){game.debug.body(flier);}
     //if(tankActive){game.debug.body(tank);}
     //game.debug.body(obstacleGenerator.bullets);
@@ -292,7 +293,7 @@ function createTank()
 	    tank.scale.setTo(horizontalScale,verticalScale);
 	    //game.time.events.add(9000,deleteFlier);//time limit for flier is 7 seconds
 	    game.time.events.add(3000,tankShoot);
-	    tankWeapon.trackSprite(tank);
+	    tankWeapon.trackSprite(tank,14,20);
 	}
 }
 var tankSet = false;
@@ -395,9 +396,12 @@ function createFlier()
 	    flier.scale.setTo(horizontalScale,verticalScale);
 	    flierDeath = game.time.events.add(12000,flyAwayFlier);//time limit for flier is 7 seconds
 	    game.time.events.add(1000*game.rnd.integerInRange(3,5),shootGun);
+	    //game.time.events.add(3000,shootGun);
+
 	    game.time.events.add(1000*game.rnd.integerInRange(7,9),shootGun);
+	    //game.time.events.add(7000,shootGun);
 	    game.time.events.add(13000,shootGun);
-	    enemyWeapon.trackSprite(flier);
+	    enemyWeapon.trackSprite(flier,0,150);
 	}
 }
 
@@ -405,6 +409,7 @@ function shootGun()
 {
 	if(flierActive){
 		enemyWeapon.fire();
+		console.log('first shot');
 	}
 	
 
