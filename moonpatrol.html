@@ -38,6 +38,7 @@ function preload() {
     game.load.image('normalGround','assets/floor.png');
     game.load.image('groundEnemy','assets/tank.png');
     game.load.image('tankBullet','assets/bulletright.png');
+    game.load.spritesheet('explosion1','assets/explosion1.png',275,200,24);
 }
 
 var player;
@@ -65,7 +66,9 @@ var enemyWeapon;
 var tankWeapon;
 var tank;
 var speedScale;
-
+var background;
+var explosion;
+var transitionPeriod;
 
 function create() {
 
@@ -73,6 +76,7 @@ function create() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
     //game.stage.backgroundColor = "#000000";
     obstacleExists = false;
+   transitionPeriod = false;
 
 	speedScale = 1;    
     //define point where new craters spawn
@@ -83,7 +87,7 @@ function create() {
     //  adding the two backgrounds
 
     //game.physics.p2.gravity.y=1000;
-   	var background = game.add.sprite(0,0,'sky');
+   	background = game.add.sprite(0,0,'sky');
     //background.scale.setTo(horizontalScale,verticalScale);
     
   	floorTiles = game.add.group();
@@ -112,7 +116,8 @@ function create() {
   	canPlayerJump = true;
     score = 0;
 
-	
+	//explosion = game.add.sprite(500,300,'explosion1');
+
 
    
 
@@ -214,16 +219,21 @@ function update() {
     game.physics.arcade.collide(player, tankWeapon.bullets,destroyCollision);
     game.physics.arcade.collide(upGun.bullets, tank,destroyTank);
     game.physics.arcade.collide(enemyWeapon.bullets,obstacleGenerator.bullets,destroyObstacle);
+ 
+
     //implementing parallax for the backgrounds
     distantBackground.tilePosition.x-=0.5*speedScale;
-    //distantBackground.tint=0xff0345
+    //distantBackground.tint=0xff0345;
+    //midBackground.tint=0xff0345;
+    //closeBackground.tint=0xff0345;
+    //background.tint=0xff0345;
     midBackground.tilePosition.x-=0.75*speedScale;
-    closeBackground.tilePosition.x-=1.2*speedScale;
+    closeBackground.tilePosition.x-=1.4*speedScale;
     groundSprite.tilePosition.x-=10;
     speedScale = 1+ player.body.position.x/1800;
     //  Reset the players velocity (movement)
     player.body.velocity.x = 0;
-   // game.debug.body(player);
+    //game.debug.body(player);
     //if(flierActive){game.debug.body(flier);}
     //if(tankActive){game.debug.body(tank);}
     //game.debug.body(obstacleGenerator.bullets);
