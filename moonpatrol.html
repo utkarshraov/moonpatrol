@@ -21,16 +21,17 @@ var distantBackground;
 var closeBackground;
 var midBackground;
 
+
 function preload() {
 
     game.load.image('sky', 'assets/sky.png');
     game.load.image('ground', 'assets/fullfloor.png');
-    game.load.image('car','assets/player.png');
+    game.load.spritesheet('car','assets/player.png',274,202,25);
     game.load.image('rock','assets/rock.png');
     game.load.image('middleBackground','assets/middleback.png');
     game.load.image('farBackground','assets/farback.png');
     game.load.image('nearBackground','assets/closeback.png');
-    game.load.image('enemyTank','assets/tank.png');
+    game.load.spritesheet('enemyTank','assets/tankSheet.png',576,384,16);
     game.load.image('enemyFlying','assets/flier.png');
     game.load.image('bulletUp','assets/bulletup.png');
     game.load.image('crater','assets/craterfloor.png');
@@ -39,6 +40,19 @@ function preload() {
     game.load.image('groundEnemy','assets/tank.png');
     game.load.image('tankBullet','assets/bulletright.png');
     game.load.spritesheet('explosion1','assets/explosion1.png',275,200,24);
+    game.load.spritesheet('explosion2','assets/explosion2.png',550,400,12);
+    game.load.spritesheet('explosion3','assets/explosion3.png',550,400,12);
+    game.load.spritesheet('shooting','assets/shooting.png',550,400,24);
+    game.load.audio('audioLoop1','assets/loop1.wav');
+    game.load.audio('audioLoop2','assets/loop2.wav');
+    game.load.audio('audioLoop3','assets/loop3.wav');
+    game.load.audio('audioTrans1','assets/loop1.wav');
+    game.load.audio('audioTrans2','assets/loop1.wav');
+    game.load.audio('enemyExplosion','assets/enemy.mp3');
+    game.load.audio('craterSound','assets/crater.mp3');
+    game.load.audio('rockSound','assets/obstacle.mp3');
+    game.load.audio('playerFire','assets/fire.mp3');
+
 }
 
 var player;
@@ -69,6 +83,16 @@ var speedScale;
 var background;
 var explosion;
 var transitionPeriod;
+var currentStage;
+var transitionScore;
+var tintValues0 = [];
+var tintValues1 = [];
+var tintValues2 = [];
+var music;
+var enemyExplosion;
+var craterSound;
+var rockSound;
+var playerFire;
 
 function create() {
 
@@ -77,6 +101,39 @@ function create() {
     //game.stage.backgroundColor = "#000000";
     obstacleExists = false;
    transitionPeriod = false;
+   tintValues0[0] = 0xffffff;
+   tintValues0[1] = 0xffffff;
+   tintValues0[2] = 0xeddfbf;
+   tintValues0[3] = 0xffa63e;
+   tintValues0[4] = 0xff9c00;
+   tintValues0[5] = 0xff9c00;
+   tintValues0[6] = 0xffa63e;
+
+   tintValues1[0] = 0xf7955f;
+   tintValues1[1] = 0xed8d4d;
+   tintValues1[2] = 0xd98653;
+   tintValues1[3] = 0xf96e37;
+   tintValues1[4] = 0xef5a00;
+   tintValues1[5] = 0xef5a00;
+   tintValues1[6] = 0xf96e37;
+
+   tintValues2[0] = 0x2495dc;
+   tintValues2[1] = 0x155f8e;
+   tintValues2[2] = 0x154e8e;
+   tintValues2[3] = 0x274a5e;
+   tintValues2[4] = 0x435882;
+   tintValues2[5] = 0x435882;
+   tintValues2[6] = 0x274a5e;
+
+enemyExplosion = game.add.audio('enemyExplosion');
+craterSound = game.add.audio('craterSound');
+rockSound = game.add.audio('rockSound');
+playerFire = game.add.audio('playerFire')
+music = game.add.audio('audioLoop1');
+music.loop = true;
+music.play();
+   transitionScore = [5000,10000,15000];
+   currentStage = 0;
 
 	speedScale = 1;    
     //define point where new craters spawn
@@ -119,7 +176,7 @@ function create() {
 	//explosion = game.add.sprite(500,300,'explosion1');
 
 
-   
+  
 
     //weapon to shoot 
     upGun = game.add.weapon(20,'projectile');
@@ -138,15 +195,13 @@ function create() {
     obstacleGenerator.fireFrom.x = 1800;//don't change
     obstacleGenerator.fireFrom.y = 780;//don't change
     obstacleGenerator.bulletAngleOffset = 180;//don't change
-    obstacleGenerator.bullets.setAll('scale.x', 01);
-	obstacleGenerator.bullets.setAll('scale.y', 01);
 	//obstacleGenerator.setSize(100,100,10,10);
     
     //again, this says weapon, but i'm using this to spawn craters. works the same way as the obstacle generator
     craterGenerator = game.add.weapon(5,'crater');
     craterGenerator.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
     craterGenerator.bulletSpeed = screenSpeed;//speed of the crater. try and keep it the same as the speed of the obstacle so it seems like we're moving at the same speed
-    craterGenerator.fireAngle = 180;//don't change
+    craterGenerator.fireAngle  =180;//don't change
     craterGenerator.bulletAngleOffset = 180;//don't change
     craterGenerator.bullets.setAll('scale.x', 0.5);
 	craterGenerator.bullets.setAll('scale.y', 0.5);
@@ -169,7 +224,9 @@ function create() {
     tankWeapon.bulletGravity.x = -500;
 
     // The player and its settings
-    player = game.add.sprite(32, game.world.height - 300, 'car');
+    player = game.add.sprite(32, game.world.height - 330, 'car');
+    player.animations.add('drive',[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24],24,true);
+    player.animations.play('drive');
 
     //  enable physics on the player
     game.physics.arcade.enable(player);
@@ -179,12 +236,19 @@ function create() {
     player.body.gravity.y = 2800;//modify this to change player gravity
    //player.scale.setTo(0.25);//don't change
     player.body.collideWorldBounds = true;//don't change
-    player.body.setSize(210,100,10,40);
+    player.body.setSize(190,100,30,72);
     
     //attach both guns to the player
     upGun.trackSprite(player,130,40);
-    
-   
+
+    changeTintValues0();
+
+	obstacleGenerator.bullets.forEach(function(item){
+		item.tint = tintValues0[5];
+		});
+   craterGenerator.bullets.forEach(function(item){
+		item.tint = tintValues0[6];
+		});
     //random events to spawn the first enemy
     random = game.rnd.integerInRange(2,4);
     var random3 = game.rnd.integerInRange(3,5);
@@ -202,44 +266,74 @@ function create() {
     pauseKey = game.input.keyboard.addKey(Phaser.KeyCode.P);
     
 }
-
+var canAnimateShoot = true;
 var onFlierDeath = false;
-
+var transitionActive = false;
 function update() {
 
     //  code to handle all the collisions and call respective functions
     game.physics.arcade.collide(player, floorTiles);//so the player doesn't fall through the ground
+    
+    if(score>transitionScore[currentStage])
+    {
+    	transitionPeriod = true;
+    	console.log("transition = true");
+    	game.time.events.remove(flierDeath);
+    	game.time.events.remove(flierSpawn);
+    	game.time.events.remove(tankSpawn);
+    	transitionActive = true;
+    }
+
     game.physics.arcade.collide(player, obstacleGenerator.bullets,destroyCollision);//player and rocks. destroys both and ends game
-    game.physics.arcade.collide(upGun.bullets, flier, shootFlier);//bullets destroy flying enemies
+    ;//bullets destroy flying enemies
     game.physics.arcade.collide(upGun.bullets,floorTiles, spawnCrater);//bullets hit the floor to create craters
     game.physics.arcade.collide(player,craterGenerator.bullets,destroyCollision);//player and crater collision. kills player, ends game
     game.physics.arcade.collide(upGun.bullets,obstacleGenerator.bullets,destroyObstacle);//bullet destroys rocks
     game.physics.arcade.collide(enemyWeapon.bullets,floorTiles, spawnCrater);
     game.physics.arcade.collide(player, enemyWeapon.bullets,destroyCollision);
     game.physics.arcade.collide(player, tankWeapon.bullets,destroyCollision);
+    if(!transitionPeriod){
     game.physics.arcade.collide(upGun.bullets, tank,destroyTank);
+    game.physics.arcade.collide(upGun.bullets, flier, shootFlier);
+	}
+    if(transitionPeriod){
+    	game.physics.arcade.collide(upGun.bullets, tank,deleteTank);
+    	game.physics.arcade.collide(upGun.bullets, flier, permanentDestroyFlier);
+
+    }
     game.physics.arcade.collide(enemyWeapon.bullets,obstacleGenerator.bullets,destroyObstacle);
+    if(transitionPeriod && !flierActive && !tankActive)
+    {
+    	
+    	// code for transition period
+    	console.log("actual transition shit happening");
+    	currentStage++;
+    	if(currentStage == 1 && transitionActive){changeTintValues1();transitionActive = false;}
+    	if(currentStage == 2 && transitionActive){changeTintValues2();transitionActive = false;}
+    	speedScale+=0.01;
+    	game.time.events.add(8000,endTransition);
+    	obstacleGenerator.bullets.bulletSpeed*=speedScale;
+    	craterGenerator.bullets.bulletSpeed*=speedScale;
+
+    }
  
 
     //implementing parallax for the backgrounds
     distantBackground.tilePosition.x-=0.5*speedScale;
-    //distantBackground.tint=0xff0345;
-    //midBackground.tint=0xff0345;
-    //closeBackground.tint=0xff0345;
-    //background.tint=0xff0345;
     midBackground.tilePosition.x-=0.75*speedScale;
     closeBackground.tilePosition.x-=1.4*speedScale;
     groundSprite.tilePosition.x-=10;
-    speedScale = 1+ player.body.position.x/1800;
     //  Reset the players velocity (movement)
     player.body.velocity.x = 0;
-    //game.debug.body(player);
+  // game.debug.body(player);
     //if(flierActive){game.debug.body(flier);}
     //if(tankActive){game.debug.body(tank);}
     //game.debug.body(obstacleGenerator.bullets);
 
 
-    game.world.bringToTop(craterGenerator.bullets);
+
+
+    
    if(tankActive){ game.world.bringToTop(tank);}//don't change. makes sure the craters are in FRONT of the ground
     score +=0.1;
  
@@ -260,7 +354,15 @@ function update() {
     }
     if(shootKey.isDown)
     {
-        upGun.fire();
+    upGun.fire();
+    if(canAnimateShoot){shoot1 = game.add.sprite(player.position.x-135,player.position.y-215,'shooting');
+	shoot1.animations.add('boom');
+	shoot1.tint = 0xf9d485 ;
+	shoot1.animations.play('boom',24,false,true);
+	canAnimateShoot = false;
+	game.time.events.add(700,nextAnimation);
+	playerFire.play();
+	}
     }
    
    //move the flying enemy
@@ -283,12 +385,84 @@ function update() {
     {
         player.body.velocity.y = -1100;
         canPlayerJump = false;
-        game.time.events.add(800,jumpPlayer);
+        game.time.events.add(900,jumpPlayer);
     }
     scoreText.text = 'Score:' + Math.round(score); //print score
     
 }
 
+function endTransition()
+{
+	console.log("transition ends");
+	game.time.events.add(1000*3,createTank);
+	game.time.events.add(1000*6,createFlier);
+	transitionPeriod = false;
+	
+
+}
+var colorBlend;
+var colorTween;
+
+function nextAnimation()
+{
+	canAnimateShoot = true;
+}
+
+function tweenTint(obj, startColor, endColor, time) {
+    if (obj) {
+            colorBlend = { step: 0 };
+            colorTween = game.add.tween(colorBlend).to({ step: 100 }, time);
+            colorTween.onUpdateCallback(() => {
+                obj.tint = Phaser.Color.interpolateColor(startColor, endColor, 100, colorBlend.step);
+            });
+            obj.tint = startColor;
+            }
+            colorTween.start();
+        }
+
+function changeTintValues0()
+{
+	background.tint=tintValues0[0];
+    distantBackground.tint=tintValues0[1];
+    midBackground.tint=tintValues0[2];
+    closeBackground.tint=tintValues0[3];
+    groundSprite.tint=tintValues0[4];
+    obstacleGenerator.bullets.tint = tintValues0[5];
+    craterGenerator.bullets.tint = tintValues0[6];
+    console.log("set colours");
+    //tweenTint(background,tintValues0[0],tintValues1[0],5000);
+}
+function changeTintValues1()
+{
+    tweenTint(background,tintValues0[0],tintValues1[0],8000);
+    tweenTint(distantBackground,tintValues0[1],tintValues1[1],8000);
+    tweenTint(midBackground,tintValues0[2],tintValues1[2],8000);
+    tweenTint(closeBackground,tintValues0[3],tintValues1[3],8000);
+    tweenTint(groundSprite,tintValues0[4],tintValues1[4],8000);
+    obstacleGenerator.bullets.forEach(function(item){
+		item.tint = tintValues1[5];
+		});
+    craterGenerator.bullets.forEach(function(item){
+		item.tint = tintValues1[5];
+		});
+    console.log("first colour change");
+}
+function changeTintValues2()
+{
+	
+    tweenTint(background,tintValues1[0],tintValues2[0],8000);
+    tweenTint(distantBackground,tintValues1[1],tintValues2[1],8000);
+    tweenTint(midBackground,tintValues1[2],tintValues2[2],8000);
+    tweenTint(closeBackground,tintValues1[3],tintValues2[3],8000);
+    tweenTint(groundSprite,tintValues1[4],tintValues2[4],8000);
+    obstacleGenerator.bullets.forEach(function(item){
+		item.tint = tintValues2[5];
+		});
+    craterGenerator.bullets.forEach(function(item){
+		item.tint = tintValues2[5];
+		});
+    console.log("second colour change");
+}
 
 function createTank()
 {
@@ -321,15 +495,39 @@ function moveTank()
 		tank.body.position.x = Math.sin(game.time.now/1000)*100+1600;
 	}*/
 }
-
+var tankSpawn;
 function destroyTank(obj1,obj2)
 {
+	
+	boom1 = game.add.sprite(obj1.x-50,obj1.y-200,'explosion1');
+	boom1.tint = 0xf9d485;
+	boom1.scale.setTo(1.5);
+	boom1.animations.add('boom');
+	boom1.animations.play('boom',24,false,true);
+	enemyExplosion.play();
 	obj1.kill();
 	obj2.kill();
 	console.log("killed tank");
 	tankActive = false;
 	tankSet = false;
-	game.time.events.add(1000*game.rnd.integerInRange(3,5),createTank);
+	tankSpawn=game.time.events.add(1000*game.rnd.integerInRange(3,5),createTank);
+	console.log("create tank in " + random + tankSpawn);
+	score+=400;
+
+}
+
+function deleteTank(obj1,obj2)
+{
+	boom1 = game.add.sprite(obj1.x+40,obj1.y-100,'explosion1');
+	boom1.tint = 0xf9d485 ;
+	boom1.animations.add('boom');
+	boom1.animations.play('boom',24,false,true);
+	enemyExplosion.play();
+	obj1.kill();
+	obj2.kill();
+	console.log("killed tank");
+	tankActive = false;
+	tankSet = false;
 	score+=400;
 }
 
@@ -349,6 +547,7 @@ function jumpPlayer()
 function generateCrater()
 {
 	craterGenerator.fire(craterPoint);
+	craterSound.play();
 	var random2 = game.rnd.integerInRange(4,6);//frequency of new craters in seconds
 	game.time.events.add(random2*1000,generateCrater);
 }
@@ -357,7 +556,13 @@ function generateCrater()
 //generates crater where projectile hits the ground
 function spawnCrater(obj1,obj2)
 {
-	craterGenerator.fire(obj1,null,null,null,105);//don't change
+	boom1 = game.add.sprite(obj1.x-450,obj1.y-450,'explosion2');
+	boom1.tint = 0xf9d485 ;
+	boom1.scale.setTo(1.4);
+	boom1.animations.add('boom');
+	boom1.animations.play('boom',24,false,true);
+	craterGenerator.fire(obj1,24,null,null,105);//don't change
+	craterSound.play();
 	obj1.kill();
 }
 
@@ -375,6 +580,12 @@ function destroyCollision(obj1, obj2)
 // destroy obstacle when bullet hits it and craetes timer for new obstacle
 function destroyObstacle(obj1, obj2)
 {
+    boom1 = game.add.sprite(obj1.x-500,obj1.y-500,'explosion3');
+    boom1.tint = 0xeddfbf ;
+    boom1.scale.setTo(1.5);
+	boom1.animations.add('boom');
+	boom1.animations.play('boom',24,false,true);
+	rockSound.play();
     obj1.kill();
     obj2.kill();
     score+=100;
@@ -389,6 +600,7 @@ function createObstacle()
     obstacleGenerator.fire();//spawn new obstacle
     random = game.rnd.integerInRange(4,6);//frequency of new rocks
     game.time.events.add(random*1000,createObstacle);
+    game.world.bringToTop(craterGenerator.bullets);
 }
 
 var flierDeath;
@@ -402,6 +614,7 @@ function createFlier()
     	game.physics.arcade.enable(flier);
 	    flier.enableBody = true;
 	   // flier.body.gravity.y = 0;
+	   console.log("flier created");
 	    flierActive = true;
 	    flier.scale.setTo(horizontalScale,verticalScale);
 	    flierDeath = game.time.events.add(12000,flyAwayFlier);//time limit for flier is 7 seconds
@@ -425,14 +638,34 @@ function shootGun()
 
 }
 //for when you shoot the flier
+var flierSpawn;
 function shootFlier(obj1,obj2)
 {
-    obj2.kill();
+    boom1 = game.add.sprite(obj1.x-450,obj1.y-400,'explosion2');
+    boom1.scale.setTo(2);
+    boom1.tint = 0xf9d485 ;
+	boom1.animations.add('boom');
+	boom1.animations.play('boom',24,false,true);
+	enemyExplosion.play();
     obj1.kill();
+    obj2.kill();
     game.time.events.remove(flierDeath);
+    console.log("flier shot");
     flierActive = false;
     score+=300;
-    game.time.events.add(1000*game.rnd.integerInRange(6,9),createFlier);//random event to spawn the next flying obstacle
+    flierSpawn = game.time.events.add(1000*game.rnd.integerInRange(6,9),createFlier);//random event to spawn the next flying obstacle
+}
+
+function permanentDestroyFlier(obj1,obj2)
+{
+	obj2.kill();
+    obj1.kill();
+    console.log("transition flier death");
+    game.time.events.remove(flierDeath);
+    game.time.events.remove(flierSpawn);
+    enemyExplosion.play();
+    flierActive = false;
+    score+=300;
 }
 
 
@@ -443,8 +676,10 @@ function deleteFlier()
     flier.kill();
     flierActive = false;
     onFlierDeath = false;
-    
-    game.time.events.add(1000*game.rnd.integerInRange(6,9),createFlier);//random event to spawn the next flying enemy
+    console.log("flier ran away");
+    var r = game.rnd.integerInRange(6,9);
+    console.log("create flier in" + r);
+    flierSpawn = game.time.events.add(1000*r,createFlier);//random event to spawn the next flying enemy
 }
 
 function flyAwayFlier()
