@@ -93,6 +93,7 @@ var enemyExplosion;
 var craterSound;
 var rockSound;
 var playerFire;
+var explosionTint = [];
 
 function create() {
 
@@ -108,6 +109,7 @@ function create() {
    tintValues0[4] = 0xff9c00;
    tintValues0[5] = 0xff9c00;
    tintValues0[6] = 0xffa63e;
+   explosionTint[0] = 0xdcc9a2;
 
    tintValues1[0] = 0xf7955f;
    tintValues1[1] = 0xed8d4d;
@@ -116,6 +118,7 @@ function create() {
    tintValues1[4] = 0xef5a00;
    tintValues1[5] = 0xef5a00;
    tintValues1[6] = 0xf96e37;
+   explosionTint[1] = 0xd4ab8a;
 
    tintValues2[0] = 0x2495dc;
    tintValues2[1] = 0x155f8e;
@@ -124,6 +127,7 @@ function create() {
    tintValues2[4] = 0x435882;
    tintValues2[5] = 0x435882;
    tintValues2[6] = 0x274a5e;
+   explosionTint[2] = 0x98a9bb;
 
 enemyExplosion = game.add.audio('enemyExplosion');
 craterSound = game.add.audio('craterSound');
@@ -132,7 +136,7 @@ playerFire = game.add.audio('playerFire')
 music = game.add.audio('audioLoop1');
 music.loop = true;
 music.play();
-   transitionScore = [5000,10000,15000];
+   transitionScore = [1000,3000,15000];
    currentStage = 0;
 
 	speedScale = 1;    
@@ -269,20 +273,11 @@ music.play();
 var canAnimateShoot = true;
 var onFlierDeath = false;
 var transitionActive = false;
+var groundSpeed = 10;
 function update() {
 
     //  code to handle all the collisions and call respective functions
     game.physics.arcade.collide(player, floorTiles);//so the player doesn't fall through the ground
-    
-    if(score>transitionScore[currentStage])
-    {
-    	transitionPeriod = true;
-    	console.log("transition = true");
-    	game.time.events.remove(flierDeath);
-    	game.time.events.remove(flierSpawn);
-    	game.time.events.remove(tankSpawn);
-    	transitionActive = true;
-    }
 
     game.physics.arcade.collide(player, obstacleGenerator.bullets,destroyCollision);//player and rocks. destroys both and ends game
     ;//bullets destroy flying enemies
@@ -292,25 +287,20 @@ function update() {
     game.physics.arcade.collide(enemyWeapon.bullets,floorTiles, spawnCrater);
     game.physics.arcade.collide(player, enemyWeapon.bullets,destroyCollision);
     game.physics.arcade.collide(player, tankWeapon.bullets,destroyCollision);
-    if(!transitionPeriod){
     game.physics.arcade.collide(upGun.bullets, tank,destroyTank);
     game.physics.arcade.collide(upGun.bullets, flier, shootFlier);
-	}
-    if(transitionPeriod){
-    	game.physics.arcade.collide(upGun.bullets, tank,deleteTank);
-    	game.physics.arcade.collide(upGun.bullets, flier, permanentDestroyFlier);
-
-    }
     game.physics.arcade.collide(enemyWeapon.bullets,obstacleGenerator.bullets,destroyObstacle);
-    if(transitionPeriod && !flierActive && !tankActive)
+
+    if(score>transitionScore[currentStage] && !transitionPeriod)
     {
     	
     	// code for transition period
+    	transitionPeriod = true;
     	console.log("actual transition shit happening");
     	currentStage++;
-    	if(currentStage == 1 && transitionActive){changeTintValues1();transitionActive = false;}
-    	if(currentStage == 2 && transitionActive){changeTintValues2();transitionActive = false;}
-    	speedScale+=0.01;
+    	if(currentStage == 1){changeTintValues1();transitionActive = false;}
+    	if(currentStage == 2){changeTintValues2();transitionActive = false;}
+    	speedScale+=0.06;
     	game.time.events.add(8000,endTransition);
     	obstacleGenerator.bullets.bulletSpeed*=speedScale;
     	craterGenerator.bullets.bulletSpeed*=speedScale;
@@ -322,7 +312,7 @@ function update() {
     distantBackground.tilePosition.x-=0.5*speedScale;
     midBackground.tilePosition.x-=0.75*speedScale;
     closeBackground.tilePosition.x-=1.4*speedScale;
-    groundSprite.tilePosition.x-=10;
+    groundSprite.tilePosition.x-=groundSpeed*speedScale;
     //  Reset the players velocity (movement)
     player.body.velocity.x = 0;
   // game.debug.body(player);
@@ -357,7 +347,7 @@ function update() {
     upGun.fire();
     if(canAnimateShoot){shoot1 = game.add.sprite(player.position.x-135,player.position.y-215,'shooting');
 	shoot1.animations.add('boom');
-	shoot1.tint = 0xf9d485 ;
+	shoot1.tint = explosionTint[currentStage] ;
 	shoot1.animations.play('boom',24,false,true);
 	canAnimateShoot = false;
 	game.time.events.add(700,nextAnimation);
@@ -394,11 +384,7 @@ function update() {
 function endTransition()
 {
 	console.log("transition ends");
-	game.time.events.add(1000*3,createTank);
-	game.time.events.add(1000*6,createFlier);
 	transitionPeriod = false;
-	
-
 }
 var colorBlend;
 var colorTween;
@@ -490,17 +476,14 @@ function moveTank()
 	{
 		tankSet = true;
 	}
-	/*if( tankSet)
-	{
-		tank.body.position.x = Math.sin(game.time.now/1000)*100+1600;
-	}*/
+
 }
 var tankSpawn;
 function destroyTank(obj1,obj2)
 {
 	
 	boom1 = game.add.sprite(obj1.x-50,obj1.y-200,'explosion1');
-	boom1.tint = 0xf9d485;
+	boom1.tint = explosionTint[currentStage];
 	boom1.scale.setTo(1.5);
 	boom1.animations.add('boom');
 	boom1.animations.play('boom',24,false,true);
@@ -516,21 +499,6 @@ function destroyTank(obj1,obj2)
 
 }
 
-function deleteTank(obj1,obj2)
-{
-	boom1 = game.add.sprite(obj1.x+40,obj1.y-100,'explosion1');
-	boom1.tint = 0xf9d485 ;
-	boom1.animations.add('boom');
-	boom1.animations.play('boom',24,false,true);
-	enemyExplosion.play();
-	obj1.kill();
-	obj2.kill();
-	console.log("killed tank");
-	tankActive = false;
-	tankSet = false;
-	score+=400;
-}
-
 function tankShoot()
 {	
 	if(tankActive){tankWeapon.fire();}
@@ -542,22 +510,13 @@ function jumpPlayer()
 	canPlayerJump = true;
 }
 
-//randomly generated crater function
-
-function generateCrater()
-{
-	craterGenerator.fire(craterPoint);
-	craterSound.play();
-	var random2 = game.rnd.integerInRange(4,6);//frequency of new craters in seconds
-	game.time.events.add(random2*1000,generateCrater);
-}
 
 
 //generates crater where projectile hits the ground
 function spawnCrater(obj1,obj2)
 {
 	boom1 = game.add.sprite(obj1.x-450,obj1.y-450,'explosion2');
-	boom1.tint = 0xf9d485 ;
+	boom1.tint = explosionTint[currentStage] ;
 	boom1.scale.setTo(1.4);
 	boom1.animations.add('boom');
 	boom1.animations.play('boom',24,false,true);
@@ -581,7 +540,7 @@ function destroyCollision(obj1, obj2)
 function destroyObstacle(obj1, obj2)
 {
     boom1 = game.add.sprite(obj1.x-500,obj1.y-500,'explosion3');
-    boom1.tint = 0xeddfbf ;
+    boom1.tint = explosionTint[currentStage] ;
     boom1.scale.setTo(1.5);
 	boom1.animations.add('boom');
 	boom1.animations.play('boom',24,false,true);
@@ -643,7 +602,7 @@ function shootFlier(obj1,obj2)
 {
     boom1 = game.add.sprite(obj1.x-450,obj1.y-400,'explosion2');
     boom1.scale.setTo(2);
-    boom1.tint = 0xf9d485 ;
+    boom1.tint = explosionTint[currentStage] ;
 	boom1.animations.add('boom');
 	boom1.animations.play('boom',24,false,true);
 	enemyExplosion.play();
@@ -655,19 +614,6 @@ function shootFlier(obj1,obj2)
     score+=300;
     flierSpawn = game.time.events.add(1000*game.rnd.integerInRange(6,9),createFlier);//random event to spawn the next flying obstacle
 }
-
-function permanentDestroyFlier(obj1,obj2)
-{
-	obj2.kill();
-    obj1.kill();
-    console.log("transition flier death");
-    game.time.events.remove(flierDeath);
-    game.time.events.remove(flierSpawn);
-    enemyExplosion.play();
-    flierActive = false;
-    score+=300;
-}
-
 
 //destroys flier after some amount of time
 function deleteFlier()
