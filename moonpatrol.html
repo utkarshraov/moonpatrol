@@ -2,7 +2,7 @@
 <html lang="en"> 
 <head> 
 	<meta charset="UTF-8" />
-    <title>Phaser - Making your first game, part 7</title>
+    <title>Dastardly Deadly Desert Driver Domination</title>
 	<script type="text/javascript" src="js/phaser.min.js"></script>
     <style type="text/css">
         body {
@@ -14,53 +14,64 @@
 
 <script type="text/javascript">
 
-var game = new Phaser.Game(1800, 900, Phaser.AUTO, '', { preload: preload, create: create, update: update,  });
+
+var video;
+var intro = {
+	preload: function(){
+	game.load.video('introVideo','assets/Title.mp4');
+	},
+	create: function(){
+	video = game.add.video('introVideo');
+	video.play(true);
+	video.addToWorld();
+	game.time.events.add(7000,nextState);
+}
+}
+function nextState()
+{
+	game.state.start('menu');
+	video.stop();
+}
+var start;
+var event1;
+var event2;
+var menu = {
+	preload: function(){
+	game.load.image('title','assets/mainTitle.png');
+	game.load.image('start','assets/start.png');
+	},
+	create: function(){
+	var screeen = game.add.sprite(0,0,'title');
+	start = game.add.sprite(0,0,'start');
+	event1 = game.time.events.add(500,killStart);
+	 sKey = game.input.keyboard.addKey(Phaser.KeyCode.S);
+},
+	update: function(){
+		if(sKey.isDown)
+		{
+			game.time.events.remove(event1);
+			game.time.events.remove(event2);
+			game.state.start('play');
+		}
+	}
+	
+}
+
+function killStart()
+{
+	start.kill();
+	event2 = game.time.events.add('500',startStart);
+}
+function startStart()
+{
+	start = game.add.sprite(0,0,'start');
+	event1 = game.time.events.add(500,killStart);
+}
 var horizontalScale = 1024/1920;
 var verticalScale = 512/1080;
 var distantBackground;
 var closeBackground;
 var midBackground;
-
-
-function preload() {
-
-    game.load.image('sky', 'assets/sky.png');
-    game.load.image('ground', 'assets/fullfloor.png');
-    game.load.spritesheet('car','assets/player.png',274,202,25);
-    game.load.image('rock','assets/rock.png');
-    game.load.image('middleBackground','assets/middleback.png');
-    game.load.image('farBackground','assets/farback.png');
-    game.load.image('nearBackground','assets/closeback.png');
-    game.load.spritesheet('enemyTank','assets/tankSheet.png',576,384,16);
-    game.load.spritesheet('falcon','assets/falconSheet.png',384,384,16);
-    game.load.image('enemyFlying','assets/flier.png');
-    game.load.image('bulletUp','assets/bulletup.png');
-    game.load.image('crater','assets/craterfloor.png');
-    game.load.image('projectile','assets/roundbullet.png');
-    game.load.image('normalGround','assets/floor.png');
-    game.load.image('groundEnemy','assets/tank.png');
-    game.load.image('tankBullet','assets/bulletright.png');
-    game.load.spritesheet('explosion1','assets/explosion1.png',275,200,24);
-    game.load.spritesheet('explosion2','assets/explosion2.png',550,400,12);
-    game.load.spritesheet('explosion3','assets/explosion3.png',550,400,12);
-    game.load.spritesheet('shooting','assets/shooting.png',550,400,24);
-    game.load.audio('audioLoop1','assets/loop1.wav');
-    game.load.audio('audioLoop2','assets/loop2.wav');
-    game.load.audio('audioLoop3','assets/loop3.wav');
-    game.load.audio('audioTrans1','assets/loop1.wav');
-    game.load.audio('audioTrans2','assets/loop1.wav');
-    game.load.audio('enemyExplosion','assets/enemy.wav');
-    game.load.audio('craterSound','assets/crater.mp3');
-    game.load.audio('rockSound','assets/obstacle.mp3');
-    game.load.audio('playerFire','assets/fire.mp3');
-    game.load.audio('groundShoot','assets/groundshoot.wav');
-    game.load.audio('flyShoot','assets/flyshoot.wav');
-    game.load.audio('audioTransition1','assets/trans1.wav');
-    game.load.audio('audioTransition2','assets/trans2.wav');
-    game.load.image('overlay','assets/scoreBG.png');
-
-}
-
 var player;
 var floorTiles;
 var cursors;
@@ -105,10 +116,60 @@ var music3;
 var trans1;
 var trans2;
 var overlay;
-function create() {
+var video;
+var canAnimateShoot = true;
+var onFlierDeath = false;
+var transitionActive = false;
+var groundSpeed = 10;
+
+
+var play = {
+preload: function() {
+
+    game.load.image('sky', 'assets/sky.png');
+    game.load.image('ground', 'assets/fullfloor.png');
+    game.load.spritesheet('car','assets/player.png',274,202,25);
+    game.load.image('rock','assets/rock.png');
+    game.load.image('middleBackground','assets/middleback.png');
+    game.load.image('farBackground','assets/farback.png');
+    game.load.image('nearBackground','assets/closeback.png');
+    game.load.spritesheet('enemyTank','assets/tankSheet.png',576,384,16);
+    game.load.spritesheet('falcon','assets/falconSheet.png',384,384,16);
+    game.load.image('enemyFlying','assets/flier.png');
+    game.load.image('bulletUp','assets/bulletup.png');
+    game.load.image('crater','assets/craterfloor.png');
+    game.load.image('projectile','assets/roundbullet.png');
+    game.load.image('normalGround','assets/floor.png');
+    game.load.image('groundEnemy','assets/tank.png');
+    game.load.image('tankBullet','assets/bulletright.png');
+    game.load.spritesheet('explosion1','assets/explosion1.png',275,200,24);
+    game.load.spritesheet('explosion2','assets/explosion2.png',550,400,12);
+    game.load.spritesheet('explosion3','assets/explosion3.png',550,400,12);
+    game.load.spritesheet('shooting','assets/shooting.png',550,400,24);
+    game.load.audio('audioLoop1','assets/loop1.wav');
+    game.load.audio('audioLoop2','assets/loop2.wav');
+    game.load.audio('audioLoop3','assets/loop3.wav');
+    game.load.audio('audioTrans1','assets/loop1.wav');
+    game.load.audio('audioTrans2','assets/loop1.wav');
+    game.load.audio('enemyExplosion','assets/enemy.wav');
+    game.load.audio('craterSound','assets/crater.mp3');
+    game.load.audio('rockSound','assets/obstacle.mp3');
+    game.load.audio('playerFire','assets/fire.mp3');
+    game.load.audio('groundShoot','assets/groundshoot.wav');
+    game.load.audio('flyShoot','assets/flyshoot.wav');
+    game.load.audio('audioTransition1','assets/trans1.wav');
+    game.load.audio('audioTransition2','assets/trans2.wav');
+    game.load.image('overlay','assets/scoreBG.png');
+ 
+		
+},
+
+
+create: function() {
 
     //  We're going to be using physics, so enable the Arcade Physics system
-    game.physics.startSystem(Phaser.Physics.ARCADE);
+    console.log("create is being run");
+    
     //game.stage.backgroundColor = "#000000";
     obstacleExists = false;
    transitionPeriod = false;
@@ -145,7 +206,6 @@ rockSound = game.add.audio('rockSound');
 duckShot = game.add.audio('groundShoot');
 falconPoop = game.add.audio('flyShoot');
 playerFire = game.add.audio('playerFire')
-
 music1 = game.add.audio('audioLoop1');
 music1.loop = true;
 music1.play();
@@ -161,7 +221,7 @@ trans1.loop = true;
 trans2 = game.add.audio('audioTransition2');
 
 
-   transitionScore = [500,2000,15000];
+   transitionScore = [2000,5000,15000];
    currentStage = 0;
 
 	speedScale = 1;    
@@ -283,24 +343,21 @@ trans2 = game.add.audio('audioTransition2');
     random = game.rnd.integerInRange(2,4);
     var random3 = game.rnd.integerInRange(3,5);
 
-    game.time.events.add(1000*random,createObstacle);
-   game.time.events.add(1000,createFlier);
+    game.time.events.add(1000*20,createObstacle);
+   game.time.events.add(30000,createFlier);
     //game.time.events.add(1000*random3,generateCrater);
-   game.time.events.add(1000,createTank);
+   game.time.events.add(25000,createTank);
     
 
     //  Our controls....
     cursors = game.input.keyboard.createCursorKeys();
     shootKey = game.input.keyboard.addKey(Phaser.KeyCode.S);
-    scoreText = game.add.text(1580,820, score,{font:"45px Arial",fill:"#FFFFFF", align:"center"});
+    scoreText = game.add.text(1580,820, score,{font:"45px Arial",fill:"#5cf3d1", align:"center"});
     pauseKey = game.input.keyboard.addKey(Phaser.KeyCode.P);
     
-}
-var canAnimateShoot = true;
-var onFlierDeath = false;
-var transitionActive = false;
-var groundSpeed = 10;
-function update() {
+},
+
+update: function() {
 
     //  code to handle all the collisions and call respective functions
     game.physics.arcade.collide(player, floorTiles);//so the player doesn't fall through the ground
@@ -368,7 +425,6 @@ function update() {
     
    if(tankActive){ game.world.bringToTop(tank);}//don't change. makes sure the craters are in FRONT of the ground
     score +=0.1;
- 
    //player controls
     if (cursors.left.isDown)
     {
@@ -422,6 +478,8 @@ function update() {
     scoreText.text = Math.round(score); //print score
     
 }
+}
+
 
 function endTransition()
 {
@@ -537,6 +595,7 @@ function moveTank()
 
 }
 var tankSpawn;
+var deathText;
 function destroyTank(obj1,obj2)
 {
 	
@@ -546,8 +605,8 @@ function destroyTank(obj1,obj2)
 	boom1.animations.add('boom');
 	boom1.animations.play('boom',24,false,true);
 	enemyExplosion.play();
-	deathText = game.add.text(obj1.position.x+100,obj1.position.y+100, '+400',{font:"28px Arial",fill:"#FFFFFF", align:"center"});
-	game.time.events.add(3000,deathText.kill);
+	deathText = game.add.text(obj1.position.x+100,obj1.position.y+100, '+400',{font:"28px Arial",fill:"#1b2d4b", align:"center",stroke:"#000000"});
+	game.time.events.add(3000,tankText);
 	obj1.kill();
 	obj2.kill();
 	console.log("killed tank");
@@ -559,7 +618,10 @@ function destroyTank(obj1,obj2)
 
 
 }
-
+function tankText()
+{
+deathText.text = '';
+}
 function tankShoot()
 {	
 	if(tankActive){
@@ -610,9 +672,47 @@ function destroyCollision(obj1, obj2)
 {
     obj1.kill();
     obj2.kill();
-    var text = game.add.text(512,256,'Game Over',{font:"50px Arial",fill:"#ffffff", align:"center"});
-    game.paused = true;
+    //game.state.start('end',true);
    // game.destroy();
+   //game.state.clearCurrentState();
+   flierActive= false;
+   tankActive = false;
+   horizontalScale = 1024/1920;
+   verticalScale = 512/1080;
+   canAnimateShoot = true;
+	onFlierDeath = false;
+	transitionActive = false;
+	groundSpeed = 10;
+	stopMusic();
+   game.time.events.remove(flierSpawn);
+    game.time.events.remove(tankSpawn);
+    game.time.events.remove(flierDeath);
+   game.state.start('end',true);
+   //game.state.restart();
+}
+
+function stopMusic()
+{
+	if(currentStage == 0 && !transitionActive){
+		music1.stop();
+
+	}
+	if(currentStage == 1 && !transitionActive){
+		music2.stop();
+
+	}
+	if(currentStage == 1 && transitionActive){
+		trans1.stop();
+
+	}
+	if(currentStage == 2 && !transitionActive){
+		music2.stop();
+
+	}
+	if(currentStage == 2 && transitionActive){
+		trans2.stop();
+
+	}
 }
 
 // destroy obstacle when bullet hits it and craetes timer for new obstacle
@@ -694,6 +794,7 @@ function falconNormal()
 
 //for when you shoot the flier
 var flierSpawn;
+var deathTextFly;
 function shootFlier(obj1,obj2)
 {
     boom1 = game.add.sprite(obj1.x-450,obj1.y-400,'explosion2');
@@ -702,15 +803,22 @@ function shootFlier(obj1,obj2)
 	boom1.animations.add('boom');
 	boom1.animations.play('boom',24,false,true);
 	enemyExplosion.play();
+	deathTextFly = game.add.text(obj1.position.x+100,obj1.position.y+100, '+300',{font:"28px Arial",fill:"#1b2d4b", align:"center",stroke:"#000000"});
+	game.time.events.add(3000,flyText);
     obj1.kill();
     obj2.kill();
     game.time.events.remove(flierDeath);
+
     console.log("flier shot");
     flierActive = false;
     score+=300;
     flierSpawn = game.time.events.add(1000*game.rnd.integerInRange(6,9),createFlier);//random event to spawn the next flying obstacle
 }
 
+function flyText()
+{
+	deathTextFly.destroy();
+}
 //destroys flier after some amount of time
 function deleteFlier()
 {
@@ -747,8 +855,31 @@ function moveFlier()
 
 }
 
-
-
+var end = {
+	preload: function(){
+		game.load.image('endScreen','assets/bob.png');
+		game.load.image('againText','assets/tryAgain.png');
+	},
+	create: function(){
+		var endscreen = game.add.sprite(0,0,'endScreen');
+		var tryText = game.add.sprite(0,0,'againText');
+		var endText = game.add.text(580,560,"Your score is " + Math.round(score),{font:"50px Ubuntu",fill:"#1b2d4b", align:"center"});
+		sKey = game.input.keyboard.addKey(Phaser.KeyCode.S);
+	},
+	update: function()
+	{
+		if(sKey.isDown)
+		{
+			game.state.start('play',true,false);
+		}
+	}
+}
+var game = new Phaser.Game(1800, 900, Phaser.AUTO, '');
+game.state.add('intro',intro,true);
+game.state.add('menu',menu);
+game.state.add('play',play);
+game.state.add('end',end);
+game.start.state('intro');
 </script>
 
 </body>
