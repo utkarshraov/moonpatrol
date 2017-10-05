@@ -32,6 +32,7 @@ function preload() {
     game.load.image('farBackground','assets/farback.png');
     game.load.image('nearBackground','assets/closeback.png');
     game.load.spritesheet('enemyTank','assets/tankSheet.png',576,384,16);
+    game.load.spritesheet('falcon','assets/falconSheet.png',384,384,16);
     game.load.image('enemyFlying','assets/flier.png');
     game.load.image('bulletUp','assets/bulletup.png');
     game.load.image('crater','assets/craterfloor.png');
@@ -48,10 +49,15 @@ function preload() {
     game.load.audio('audioLoop3','assets/loop3.wav');
     game.load.audio('audioTrans1','assets/loop1.wav');
     game.load.audio('audioTrans2','assets/loop1.wav');
-    game.load.audio('enemyExplosion','assets/enemy.mp3');
+    game.load.audio('enemyExplosion','assets/enemy.wav');
     game.load.audio('craterSound','assets/crater.mp3');
     game.load.audio('rockSound','assets/obstacle.mp3');
     game.load.audio('playerFire','assets/fire.mp3');
+    game.load.audio('groundShoot','assets/groundshoot.wav');
+    game.load.audio('flyShoot','assets/flyshoot.wav');
+    game.load.audio('audioTransition1','assets/trans1.wav');
+    game.load.audio('audioTransition2','assets/trans2.wav');
+    game.load.image('overlay','assets/scoreBG.png');
 
 }
 
@@ -94,7 +100,11 @@ var craterSound;
 var rockSound;
 var playerFire;
 var explosionTint = [];
-
+var music2;
+var music3;
+var trans1;
+var trans2;
+var overlay;
 function create() {
 
     //  We're going to be using physics, so enable the Arcade Physics system
@@ -132,11 +142,26 @@ function create() {
 enemyExplosion = game.add.audio('enemyExplosion');
 craterSound = game.add.audio('craterSound');
 rockSound = game.add.audio('rockSound');
+duckShot = game.add.audio('groundShoot');
+falconPoop = game.add.audio('flyShoot');
 playerFire = game.add.audio('playerFire')
-music = game.add.audio('audioLoop1');
-music.loop = true;
-music.play();
-   transitionScore = [1000,3000,15000];
+
+music1 = game.add.audio('audioLoop1');
+music1.loop = true;
+music1.play();
+
+music2 = game.add.audio('audioLoop2');
+music2.loop = true;
+
+music3 = game.add.audio('audioLoop3');
+music3.loop = true;
+
+trans1 = game.add.audio('audioTransition1');
+trans1.loop = true;
+trans2 = game.add.audio('audioTransition2');
+
+
+   transitionScore = [500,2000,15000];
    currentStage = 0;
 
 	speedScale = 1;    
@@ -173,6 +198,7 @@ music.play();
     game.physics.arcade.enable(groundSprite);
     groundSprite.enableBody = true;
     groundSprite.body.immovable = true;
+     overlay = game.add.sprite(0,0,'overlay');
 
   	canPlayerJump = true;
     score = 0;
@@ -258,7 +284,7 @@ music.play();
     var random3 = game.rnd.integerInRange(3,5);
 
     game.time.events.add(1000*random,createObstacle);
-    game.time.events.add(1000,createFlier);
+   game.time.events.add(1000,createFlier);
     //game.time.events.add(1000*random3,generateCrater);
    game.time.events.add(1000,createTank);
     
@@ -266,7 +292,7 @@ music.play();
     //  Our controls....
     cursors = game.input.keyboard.createCursorKeys();
     shootKey = game.input.keyboard.addKey(Phaser.KeyCode.S);
-    scoreText = game.add.text(10,30,'Score:' + score,{font:"28px Arial",fill:"#000000", align:"center"});
+    scoreText = game.add.text(1580,820, score,{font:"45px Arial",fill:"#FFFFFF", align:"center"});
     pauseKey = game.input.keyboard.addKey(Phaser.KeyCode.P);
     
 }
@@ -298,14 +324,30 @@ function update() {
     	transitionPeriod = true;
     	console.log("actual transition shit happening");
     	currentStage++;
-    	if(currentStage == 1){changeTintValues1();transitionActive = false;}
-    	if(currentStage == 2){changeTintValues2();transitionActive = false;}
-    	speedScale+=0.06;
+    	if(currentStage == 1){
+    		changeTintValues1();
+    		music1.stop();
+			trans1.play();
+			console.log("transition1");
+			transitionActive = false;
+		}
+    	if(currentStage == 2){
+    		changeTintValues2();
+    		music2.stop();
+			trans2.play();
+			console.log("transition2");
+			transitionActive = false;
+		}
+    	speedScale+=0.1;
     	game.time.events.add(8000,endTransition);
     	obstacleGenerator.bullets.bulletSpeed*=speedScale;
     	craterGenerator.bullets.bulletSpeed*=speedScale;
 
-    }
+
+    
+	transitionPeriod = false;
+}
+
  
 
     //implementing parallax for the backgrounds
@@ -377,15 +419,28 @@ function update() {
         canPlayerJump = false;
         game.time.events.add(900,jumpPlayer);
     }
-    scoreText.text = 'Score:' + Math.round(score); //print score
+    scoreText.text = Math.round(score); //print score
     
 }
 
 function endTransition()
 {
 	console.log("transition ends");
+	if(currentStage == 1)
+	{
+		trans1.stop();
+		music2.play();
+		console.log("second loop");
+	}
+	if(currentStage == 2)
+	{
+		trans2.stop();
+		music3.play();
+		console.log("third loop");
+	}
 	transitionPeriod = false;
 }
+
 var colorBlend;
 var colorTween;
 
@@ -454,7 +509,9 @@ function createTank()
 {
 	if(!tankActive)
     {//spawn the flier and set it's properties
-    	tank = game.add.sprite(2000,680,'groundEnemy');//don't change
+    	tank = game.add.sprite(2000,660,'enemyTank');
+    	tank.animations.add('shoot',[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],24,true);
+    	//tank.animations.play('drive');//don't change
     	game.physics.arcade.enable(tank);
     	console.log("created tank");
 	    //tank.enableBody = true;
@@ -464,6 +521,7 @@ function createTank()
 	    //game.time.events.add(9000,deleteFlier);//time limit for flier is 7 seconds
 	    game.time.events.add(3000,tankShoot);
 	    tankWeapon.trackSprite(tank,14,20);
+
 	}
 }
 var tankSet = false;
@@ -488,6 +546,8 @@ function destroyTank(obj1,obj2)
 	boom1.animations.add('boom');
 	boom1.animations.play('boom',24,false,true);
 	enemyExplosion.play();
+	deathText = game.add.text(obj1.position.x+100,obj1.position.y+100, '+400',{font:"28px Arial",fill:"#FFFFFF", align:"center"});
+	game.time.events.add(3000,deathText.kill);
 	obj1.kill();
 	obj2.kill();
 	console.log("killed tank");
@@ -497,12 +557,31 @@ function destroyTank(obj1,obj2)
 	console.log("create tank in " + random + tankSpawn);
 	score+=400;
 
+
 }
 
 function tankShoot()
 {	
-	if(tankActive){tankWeapon.fire();}
+	if(tankActive){
+		tank.animations.play('shoot',15);console.log("shoot animation");
+		duckShot.play();console.log('sound plays');
+		game.time.events.add(500,fireTank);
+		game.time.events.add(1000,tankNormal);
+		//tankWeapon.fire();}
+	}
 	game.time.events.add(1000*game.rnd.integerInRange(3,4),tankShoot);
+}
+function fireTank()
+{
+	if(tankActive){tankWeapon.fire();console.log("duck spits");
+	
+}
+}
+
+function tankNormal(){
+		if(tankActive){tank.animations.stop();
+		console.log("duck animation normal");
+	}
 }
 
 function jumpPlayer()
@@ -539,7 +618,7 @@ function destroyCollision(obj1, obj2)
 // destroy obstacle when bullet hits it and craetes timer for new obstacle
 function destroyObstacle(obj1, obj2)
 {
-    boom1 = game.add.sprite(obj1.x-500,obj1.y-500,'explosion3');
+    boom1 = game.add.sprite(obj1.x-500,obj1.y-450,'explosion3');
     boom1.tint = explosionTint[currentStage] ;
     boom1.scale.setTo(1.5);
 	boom1.animations.add('boom');
@@ -568,8 +647,10 @@ function createFlier()
 {
     if(!flierActive)
     {//spawn the flier and set it's properties
-		var spawnx = game.rnd.integerInRange(700,1200)
-    	flier = game.add.sprite(spawnx,-100,'enemyFlying');//don't change
+		var spawnx = game.rnd.integerInRange(700,1200);
+    	flier = game.add.sprite(spawnx,-100,'falcon');//don't change
+    	flier.animations.add('shoot',[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],24,false);
+    	flier.animations.add('normal',[0],1,true);
     	game.physics.arcade.enable(flier);
 	    flier.enableBody = true;
 	   // flier.body.gravity.y = 0;
@@ -590,12 +671,27 @@ function createFlier()
 function shootGun()
 {
 	if(flierActive){
-		enemyWeapon.fire();
+		flier.animations.play('shoot',15);
+		falconPoop.play();
+		game.time.events.add(500,falconDrop);
+		game.time.events.add(1000,falconNormal);
 		console.log('first shot');
 	}
-	
+}	
+function falconDrop()
+{
+	if(flierActive){
+		enemyWeapon.fire();
+		falconPoop.play();
+	}
+}
+
+function falconNormal()
+{
+	flier.animations.stop();
 
 }
+
 //for when you shoot the flier
 var flierSpawn;
 function shootFlier(obj1,obj2)
