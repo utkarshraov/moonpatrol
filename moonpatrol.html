@@ -605,7 +605,7 @@ function destroyTank(obj1,obj2)
 	boom1.animations.add('boom');
 	boom1.animations.play('boom',24,false,true);
 	enemyExplosion.play();
-	deathText = game.add.text(obj1.position.x+100,obj1.position.y+100, '+400',{font:"28px Arial",fill:"#1b2d4b", align:"center",stroke:"#000000"});
+	deathText = game.add.text(obj1.position.x+100,obj1.position.y+100, '+400',{font:"28px Arial",fill:"#5cf3d1", align:"center",stroke:"#000000"});
 	game.time.events.add(3000,tankText);
 	obj1.kill();
 	obj2.kill();
@@ -803,7 +803,7 @@ function shootFlier(obj1,obj2)
 	boom1.animations.add('boom');
 	boom1.animations.play('boom',24,false,true);
 	enemyExplosion.play();
-	deathTextFly = game.add.text(obj1.position.x+100,obj1.position.y+100, '+300',{font:"28px Arial",fill:"#1b2d4b", align:"center",stroke:"#000000"});
+	deathTextFly = game.add.text(obj1.position.x+100,obj1.position.y+100, '+300',{font:"28px Arial",fill:"#5cf3d1", align:"center",stroke:"#000000"});
 	game.time.events.add(3000,flyText);
     obj1.kill();
     obj2.kill();
